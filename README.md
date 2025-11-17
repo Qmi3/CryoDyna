@@ -1,4 +1,4 @@
-## CryoDyna:Multiscale end-to-end modeling of cryo-EM macromolecule dynamics with physics-aware neural network
+## CryoDyna: Multiscale end-to-end modeling of cryo-EM macromolecule dynamics with physics-aware neural network
 [🏠 Homepage](https://bytedance.github.io/cryostar/) |
 [📚 User Guide](https://byte-research.gitbook.io/cryostar/)
 
