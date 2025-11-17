@@ -1,9 +1,10 @@
 dataset_attr = dict(
-    dataset_dir="/lustre/grp/gyqlab/share/cryoem_particles/10073/data",
-    starfile_path="/lustre/grp/gyqlab/share/cryoem_particles/10073/shiny_correctpaths_cleanedcorruptstacks.star",
-    apix=1.4,
-    side_shape=380,
-    ref_pdb_path="/lustre/grp/gyqlab/share/cryoem_particles/10073/5gan_centered.pdb",
+    dataset_dir="/lustre/grp/gyqlab/share/cryoem_particles/10049/data",
+    starfile_path="/lustre/grp/gyqlab/share/cryoem_particles/10049/data/cryosparc_P53_J26_006_particles.star",
+    # starfile_path="/lustre/grp/gyqlab/zhangcw/CryoDyna/empiar_10049/10049_drgnai.star",
+    apix=1.23,
+    side_shape=192,
+    ref_pdb_path="/lustre/grp/gyqlab/share/cryoem_particles/10049/data/af3-10049-align-new_centered.pdb",
 )
 
 extra_input_data_attr = dict(
@@ -14,10 +15,10 @@ extra_input_data_attr = dict(
 )
 
 data_process = dict(
-    down_side_shape=128,
+    down_side_shape= None,
     mask_rad=1.0,
     # optional
-    low_pass_bandwidth=9.4,
+    low_pass_bandwidth=16.86,
 )
 
 data_loader = dict(
@@ -25,14 +26,16 @@ data_loader = dict(
     val_batch_per_gpu=128,
     workers_per_gpu=4,
 )
-work_dir_name = "10073"
+
 seed = 1
 exp_name = ""
 eval_mode = False
 do_ref_init = True
+
+gmm = dict(tunable=False)
+work_dir_name="10049"
 knn_num = 32
 gmm = dict(tunable=False)
-
 model = dict(model_type="VAE",
              input_space="real",
              ctf="v2",
@@ -54,7 +57,7 @@ model = dict(model_type="VAE",
 
 loss = dict(
     intra_chain_cutoff=12.,
-    inter_chain_cutoff=0.,
+    inter_chain_cutoff=12.,
     intra_chain_res_bound=None,
     nt_intra_chain_cutoff=15.,
     nt_inter_chain_cutoff=15.,
@@ -65,20 +68,23 @@ loss = dict(
     connect_weight=1.0,
     sse_weight=0.0,
     dist_weight=1.0,
+    inter_dist_weight=1.0,
     # dist_penalty_weight=1.0,
     dist_keep_ratio=0.99,
-    clash_weight=1.0,
+    inter_dist_keep_ratio=0.8,
+    clash_weight=5.0,
     warmup_step=10000,
     kl_beta_upper=0.5,
     free_bits=3.0)
 
-optimizer = dict(lr=1e-4, )
+optimizer = dict(lr=1e-4,)
 
-analyze = dict(cluster_k=10,skip_umap=False)
+analyze = dict(cluster_k=10, skip_umap=False)
 
-runner = dict(log_every_n_step=100)
 
-trainer = dict(max_epochs=80,
+runner = dict(log_every_n_step=100,)
+
+trainer = dict(max_epochs=50,
                devices=1,
                precision="32",
             #    num_sanity_val_steps=0,

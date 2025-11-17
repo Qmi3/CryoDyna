@@ -20,24 +20,7 @@ class ResLinear(nn.Module):
     def forward(self, x):
         return self.linear(x) + x
 
-# class MLP_wo_norm(nn.Module):
 
-#     def __init__(self, in_dims: List[int], out_dims: List[int]):
-#         super().__init__()
-#         self.in_dims = in_dims
-#         self.out_dims = out_dims
-
-#         layers = []
-#         for (i, o) in zip(in_dims, out_dims):
-#             layers.append(ResLinear(i, o) if i == o else Linear(i, o))
-#             layers.append(nn.ELU(inplace=True))
-#             # layers.append(nn.LayerNorm(o))
-
-#         self.layers = nn.Sequential(*layers)
-
-#     def forward(self, x):
-#         return self.layers(x)
-    
 class MLP(nn.Module):
 
     def __init__(self, in_dims: List[int], out_dims: List[int]):
@@ -48,7 +31,7 @@ class MLP(nn.Module):
         layers = []
         for (i, o) in zip(in_dims, out_dims):
             layers.append(ResLinear(i, o) if i == o else Linear(i, o))
-            layers.append(nn.SiLU(inplace=True))
+            layers.append(nn.ReLU(inplace=True))
             layers.append(nn.LayerNorm(o))
 
         self.layers = nn.Sequential(*layers)
@@ -61,7 +44,7 @@ class Linear_w_crossattention(nn.Module):
         super().__init__()
         self.in_dim = in_dim
         self.out_dim = out_dim
-        self.linear = nn.Sequential(Linear(in_dim,out_dim),nn.SiLU(inplace=True),nn.LayerNorm(out_dim))
+        self.linear = nn.Sequential(Linear(in_dim,out_dim),nn.ELU(inplace=True),nn.LayerNorm(out_dim))
         self.attention = TransformerConv(out_dim,out_dim,heads=4,concat=False)
 
     def forward(self, x):
@@ -244,9 +227,9 @@ class MultiScaleGATEncoder(nn.Module):
         self.out_dim = out_dim
         self.num_hidden_layers = num_hidden_layers
         self.mlp1 = MLP(np.concatenate(([in_dim],self.hidden_dim[:attention_layer])), self.hidden_dim[:attention_layer+1])
-        self.attn_layers = [TransformerConv(i,o,heads=4,concat=False,dropout=0.2) for i,o in zip(hidden_dim[attention_layer:-1],hidden_dim[attention_layer+1:])]
-        # self.pre_norm = [nn.LayerNorm(o) for i,o in zip(hidden_dim[attention_layer:-1],hidden_dim[attention_layer+1:])]
-        # self.ff_layers = [nn.Sequential(nn.Linear(i,o),nn.ELU(inplace=True)) for i,o in zip(hidden_dim[attention_layer:-1],hidden_dim[attention_layer+1:])]
+        self.attn_layers = [TransformerConv(i,o,heads=4,concat=False) for i,o in zip(hidden_dim[attention_layer:-1],hidden_dim[attention_layer+1:])]
+        self.pre_norm = [nn.LayerNorm(o) for i,o in zip(hidden_dim[attention_layer:-1],hidden_dim[attention_layer+1:])]
+        self.ff_layers = [nn.Sequential(nn.Linear(i,o),nn.ELU(inplace=True)) for i,o in zip(hidden_dim[attention_layer:-1],hidden_dim[attention_layer+1:])]
         self.post_norm = [nn.LayerNorm(o) for i,o in zip(hidden_dim[attention_layer:-1],hidden_dim[attention_layer+1:])]
         # self.mlp2 = nn.Sequential(*layers)
         # self.input_layer = nn.Sequential(
@@ -256,7 +239,7 @@ class MultiScaleGATEncoder(nn.Module):
         # self.attention_layer = TransformerConv(hidden_dim[attention_layer],hidden_dim[attention_layer],heads=4,concat=False)
         # # self.mlp2 = MLP([self.hidden_dim[attention_layer] * 2], [self.hidden_dim[attention_layer]])
         # self.mlp2 = MLP(self.hidden_dim[attention_layer:-1] , self.hidden_dim[attention_layer+1:])
-        self.mean_layer = Linear(self.hidden_dim[-1], out_dim)
+        # self.mean_layer = Linear(self.hidden_dim[-1], out_dim)
         # self.var_layer = Linear(self.hidden_dim[-1], out_dim)
 
     def forward(self, x):
@@ -265,15 +248,15 @@ class MultiScaleGATEncoder(nn.Module):
         # import pdb;pdb.set_trace()
         for it, attn_layer in enumerate(self.attn_layers):
             attn_layer = attn_layer.to(x.device)
-            # pre_norm = self.pre_norm[it].to(x.device)
+            pre_norm = self.pre_norm[it].to(x.device)
             post_norm = self.post_norm[it].to(x.device)
-            x = attn_layer(x,img_img_idx)
-            # x = pre_norm(x)
-            # ff_layer = self.ff_layers[it].to(x.device)
-            # x = x + ff_layer(x)
+            x = x + attn_layer(x,img_img_idx)
+            x = pre_norm(x)
+            ff_layer = self.ff_layers[it].to(x.device)
+            x = x + ff_layer(x)
             x = post_norm(x)
         # x = self.encoder(x)
-        x = self.mean_layer(x)
+        # mean = self.mean_layer(x)
         # log_var = self.var_layer(x)
         return x
     
@@ -292,21 +275,21 @@ class GATEncoder(nn.Module):
         self.out_dim = out_dim
         self.num_hidden_layers = num_hidden_layers
 
-        # self.input_layer = nn.Sequential(
-        #     ResLinear(in_dim, self.hidden_dim[0]) if in_dim == self.hidden_dim[0] else Linear(
-        #         in_dim, self.hidden_dim[0]), nn.ReLU(inplace=True))
-        self.mlp1 = MLP(np.concatenate(([in_dim],self.hidden_dim[:attention_layer])), self.hidden_dim[:attention_layer+1])
+        self.input_layer = nn.Sequential(
+            ResLinear(in_dim, self.hidden_dim[0]) if in_dim == self.hidden_dim[0] else Linear(
+                in_dim, self.hidden_dim[0]), nn.ELU(inplace=True))
+        self.mlp1 = MLP(self.hidden_dim[:attention_layer], self.hidden_dim[1:attention_layer+1])
         # self.norm1 = nn.LayerNorm(self.hidden_dim[attention_layer])
         self.attention_layer = TransformerConv(hidden_dim[attention_layer],hidden_dim[attention_layer],heads=4,concat=False)
         self.dropout = nn.Dropout(p=0.5)
         self.norm1 = nn.LayerNorm(self.hidden_dim[attention_layer])
         # self.mlp2 = MLP([self.hidden_dim[attention_layer] * 2], [self.hidden_dim[attention_layer]])
         self.mlp2 = MLP(self.hidden_dim[attention_layer:-1] , self.hidden_dim[attention_layer+1:])
-        self.mean_layer = ResLinear(self.hidden_dim[-1], out_dim)
+        self.mean_layer = Linear(self.hidden_dim[-1], out_dim)
         # self.var_layer = Linear(self.hidden_dim[-1], out_dim)
 
     def forward(self, x):
-        x = self.mlp1(x)
+        x = self.mlp1(self.input_layer(x))
         # x = self.all_gather(x)
         img_img_idx= complete_graph(x.shape[0],x.device)
         # x = self.norm1(x)
@@ -860,7 +843,7 @@ class MetaToResidueFusion(nn.Module):
         super().__init__()
         self.fuse = nn.Sequential(
             nn.Linear(2 * dim, dim),
-            nn.SiLU(),
+            nn.ReLU(),
             nn.Linear(dim, dim)
         )
 
@@ -925,19 +908,19 @@ class GatedMetaFusion(nn.Module):
         super().__init__()
         self.gate1 = nn.Sequential(
             nn.Linear(2 * dim +3 , dim),
-            nn.ELU(),
+            nn.ReLU(),
             nn.Linear(dim, dim),
             # nn.Sigmoid()
         )
         self.gate2 = nn.Sequential(
             nn.Linear(2 * dim +3 , dim),
-            nn.ELU(),
+            nn.ReLU(),
             nn.Linear(dim, dim),
             # nn.Sigmoid()
         )
         self.fuse = nn.Sequential(
             nn.Linear(dim , dim),
-            nn.ELU(),
+            nn.ReLU(),
             nn.Linear(dim, dim),
             # nn.Sigmoid()
         )
@@ -961,17 +944,12 @@ class GatedMetaFusion(nn.Module):
 class HierarchicalDeltaGNN(nn.Module):
     def __init__(self, in_dim, d_hidden_dim, latent_dim, sec_ids, meta_edge_index, edge_dist, pe_vector, meta_2_node_edge, meta_2_node_vector,out_dim):
         super().__init__()
-        # self.mapping_mlp = Linear(in_dim, out_dim //3 * latent_dim)
-        self.mapping_mlp = nn.Linear(in_dim, out_dim //3 * latent_dim)
-        # self.norm1 = nn.LayerNorm(latent_dim)
+        self.mapping_mlp = Linear(in_dim, out_dim //3 * latent_dim)
         # self.mapping_mlp = MLP(np.concatenate(([in_dim],d_hidden_dim)), np.concatenate((d_hidden_dim,[out_dim //3 * latent_dim])))
-        self.mlp1 = nn.Sequential(Linear(latent_dim + 3, latent_dim),nn.ELU(),Linear(latent_dim, latent_dim))
-        # self.norm2 = nn.LayerNorm(latent_dim)
+        self.mlp1 = Linear(latent_dim + 3, latent_dim)
         self.meta_gnn1 = GATv2Conv(latent_dim, latent_dim, edge_dim=1,heads=4, concat=False)
-        # self.norm3 = nn.LayerNorm(latent_dim)
         self.fusion1 = GatedMetaFusion(latent_dim)
-        # self.norm4 = nn.LayerNorm(latent_dim)
-        self.mlp2 = nn.Sequential(Linear(latent_dim + 3, latent_dim),nn.ELU(),Linear(latent_dim, latent_dim))
+        self.mlp2 = Linear(latent_dim + 3, latent_dim)
         self.meta_gnn2 = GATv2Conv(latent_dim, latent_dim, edge_dim=1,heads=4, concat=False)
         self.fusion2 = GatedMetaFusion(latent_dim)
         # self.mlp3 = Linear(latent_dim, latent_dim)
@@ -986,11 +964,11 @@ class HierarchicalDeltaGNN(nn.Module):
         self.point_num = out_dim // 3
         self.coord_head = nn.Sequential(
             nn.Linear(latent_dim, latent_dim),
-            nn.ELU(),
+            nn.ReLU(),
             nn.Linear(latent_dim, latent_dim),
-            nn.ELU(),
+            nn.ReLU(),
             nn.Linear(latent_dim, latent_dim),
-            nn.ELU(),
+            nn.ReLU(),
             nn.Linear(latent_dim, 3)
         )
 
@@ -1001,17 +979,13 @@ class HierarchicalDeltaGNN(nn.Module):
         batch_sec_idx, batch_meta_edge_idx, batch_edge_dist,batch_meta_2_node_idx,batch_meta_2_node_vector = batch_sec_idx.to(x.device), batch_meta_edge_idx.to(x.device), batch_edge_dist.to(x.device),batch_meta_2_node_idx.to(x.device),batch_meta_2_node_vector.to(x.device)
         # import pdb;pdb.set_trace()
         x = x.reshape(B * self.point_num, -1)
-        # x = self.norm1(x)
         batch_pe_vector = self.pe_vector.repeat(B,1).to(x.device)
         x = self.mlp1(torch.cat((x,batch_pe_vector),dim=-1))
         meta_x = scatter_mean(x, batch_sec_idx, dim=0)
-        # meta_x = self.norm2(meta_x)
         meta_x = self.meta_gnn1(meta_x, batch_meta_edge_idx, edge_attr= batch_edge_dist)
         x_fused = self.fusion1(x, meta_x, batch_sec_idx,batch_pe_vector,batch_meta_2_node_idx,batch_meta_2_node_vector)
-        # x_fused  = self.norm3(x_fused)
         x = self.mlp2(torch.cat((x_fused,batch_pe_vector),dim=-1))
         meta_x = scatter_mean(x, batch_sec_idx, dim=0)
-        # meta_x = self.norm4(meta_x)
         meta_x = self.meta_gnn2(meta_x, batch_meta_edge_idx, edge_attr= batch_edge_dist)
         x_fused = self.fusion2(x, meta_x, batch_sec_idx,batch_pe_vector,batch_meta_2_node_idx,batch_meta_2_node_vector)
         # x = self.mlp3(x_fused)

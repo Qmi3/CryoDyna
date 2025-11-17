@@ -195,8 +195,8 @@ class CryoEMTask(pl.LightningModule):
         # import pdb;pdb.set_trace()
         # print(fold_feature['single'].flatten().shape[0]+fold_feature['pair'].flatten().shape[0])
         self.model = VAE(in_dim=in_dim,
-                         pos=ref_centers,
-                         pae = pae,
+                        #  pos=ref_centers,
+                        #  pae = pae,
                          points_num = self.gmm_centers.shape[0],
                          **cfg.model.model_cfg)
         # low-pass filtering
@@ -314,7 +314,7 @@ class CryoEMTask(pl.LightningModule):
             nt_cutoff_pairs = indices_in_pdb[nt_cutoff_pairs]
             log_to_current(f"{len(nt_cutoff_pairs)} NT pairs")
             cutoff_pairs = np.vstack((aa_cutoff_pairs, nt_cutoff_pairs))
-
+            import pdb;pdb.set_trace()
         else:
             cutoff_pairs = find_quaint_cutoff_pairs(meta.coord, meta.chain_id, meta.res_id,
                                                     cfg.loss.intra_chain_cutoff, cfg.loss.inter_chain_cutoff,

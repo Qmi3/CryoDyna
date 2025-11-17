@@ -60,18 +60,18 @@ model = dict(model_type="VAE",
              input_space="real",
              ctf="v2",
              model_cfg=dict(
-                 encoder_cls='MS-GAT',
+                 encoder_cls='GAT',
                  decoder_cls='metaGNN',
                  e_hidden_dim=(512, 256, 128, 128),
-                 z_dim=64,
+                 z_dim=128,
                  latent_dim = 32,
                  attention_layer = 2,
-                 d_hidden_dim=(32,64,128),
+                 d_hidden_dim=(128,128),
                 #  d_e_hidden_dim=32,
                 #  d_hidden_dim=(512, 256, 128, 64, 32)[::-1],
                 #  d_hidden_dim=(512,32,12)[::-1],
-                e_hidden_layers=4,
-                d_hidden_layers=3,
+                 e_hidden_layers=4,
+                d_hidden_layers=2,
                 #  pe_dim = 8,
              ))
 # model = dict(model_type="VAE",
@@ -93,7 +93,7 @@ model = dict(model_type="VAE",
 #                 #  pe_dim = 8,
 #              ))
 loss = dict(
-    intra_chain_cutoff=12.,
+    intra_chain_cutoff=8.,
     inter_chain_cutoff=0.,
     intra_chain_res_bound=None,
     clash_min_cutoff=4.0,
@@ -121,10 +121,10 @@ runner = dict(log_every_n_step=100,)
 
 trainer = dict(max_epochs=30,
                devices=1,
-               precision="32",
+               precision="16-mixed",
             #    num_sanity_val_steps=0,
             #    val_check_interval=1000,
-               check_val_every_n_epoch=1)
+               check_val_every_n_epoch=3)
 
 # pose_searcher = False
 # num_ipa = 1

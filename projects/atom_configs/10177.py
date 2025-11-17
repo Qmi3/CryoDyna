@@ -1,32 +1,28 @@
 dataset_attr = dict(
-    dataset_dir="/lustre/grp/gyqlab/share/cryoem_particles/10059/data/particles",
-    starfile_path="/lustre/grp/gyqlab/share/cryoem_particles/10059/data/particles/cryosparc_P6_J23_008_particles.star",
-    apix=1.2156,
-    side_shape=192,
-    ref_pdb_path="/lustre/grp/gyqlab/share/cryoem_particles/10059/7rqw_dock_centered_clean.pdb",
+    dataset_dir="/lustre/grp/gyqlab/share/cryoem_particles/10177/data/dataset_trimer_61929_ptcls",
+    starfile_path="/lustre/grp/gyqlab/share/cryoem_particles/10177/data/dataset_trimer_61929_ptcls/preprocessed.star",
+    apix=1.067,
+    side_shape=384,
+    ref_pdb_path="/lustre/grp/gyqlab/share/cryoem_particles/10177/data/6cm9_C3_rename_clean_centered.pdb",
 )
-work_dir_name = "10059"
+work_dir_name = "10177"
 extra_input_data_attr = dict(
     nma_path="",
     use_domain=False,
     domain_path=None,
     ckpt_path=None,
-    pred_sequence='/lustre/grp/gyqlab/share/cryoem_particles/10059/7rqw_af.fasta',
-    protein_feature_path='/lustre/grp/gyqlab/zhangcw/alphafold/7rqw/features.pkl',
-    fold_feature_path='/lustre/grp/gyqlab/zhangcw/alphafold/7rqw/result_model_4_multimer_v3_pred_0.pkl',
-    jax_param_path = '/lustre/grp/gyqlab/share/AF2_database/params/params_model_1_multimer_v3.npz'
 )
-knn_num=16
+knn_num=32
 data_process = dict(
-    down_side_shape=dataset_attr["side_shape"],
+    down_side_shape=256,
     mask_rad=1.0,
     # optional
-    # low_pass_bandwidth=10,
+    low_pass_bandwidth=10,
 )
 
 data_loader = dict(
-    train_batch_per_gpu=128,
-    val_batch_per_gpu=256,
+    train_batch_per_gpu=64,
+    val_batch_per_gpu=128,
     workers_per_gpu=4,
 )
 
@@ -43,7 +39,7 @@ model = dict(model_type="VAE",
                  encoder_cls='MS-GAT',
                  decoder_cls='metaGNN',
                  e_hidden_dim=(512, 256, 128, 128),
-                 z_dim=128,
+                 z_dim=64,
                  latent_dim = 32,
                  attention_layer = 2,
                  d_hidden_dim=(128,128),
@@ -72,7 +68,7 @@ model = dict(model_type="VAE",
 #              ))
 
 loss = dict(
-    af_keep_ratio=0.95,
+    # af_keep_ratio=0.99,
     intra_chain_cutoff=12.,
     inter_chain_cutoff=0.,
     intra_chain_res_bound=None,
@@ -95,9 +91,9 @@ analyze = dict(cluster_k=10, skip_umap=True)
 
 runner = dict(log_every_n_step=100, )
 
-trainer = dict(max_epochs=30,
+trainer = dict(max_epochs=50,
                devices=1,
-               precision="16-mixed",
+               precision="32",
             #    num_sanity_val_steps=0,
             #    val_check_interval=5)
-               check_val_every_n_epoch=3)
+               check_val_every_n_epoch=5)

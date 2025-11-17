@@ -1,9 +1,9 @@
 dataset_attr = dict(
-    dataset_dir="/lustre/grp/gyqlab/share/cryoem_particles/10073/data",
-    starfile_path="/lustre/grp/gyqlab/share/cryoem_particles/10073/shiny_correctpaths_cleanedcorruptstacks.star",
-    apix=1.4,
-    side_shape=380,
-    ref_pdb_path="/lustre/grp/gyqlab/share/cryoem_particles/10073/5gan_centered.pdb",
+    dataset_dir="/lustre/grp/gyqlab/share/cryoem_particles/10081/",
+    starfile_path="/lustre/grp/gyqlab/share/cryoem_particles/10081/Particles/J6.star",
+    apix=1.3,
+    side_shape=256,
+    ref_pdb_path="/lustre/grp/gyqlab/share/cryoem_particles/10081/5u6o_centered.pdb",
 )
 
 extra_input_data_attr = dict(
@@ -17,7 +17,7 @@ data_process = dict(
     down_side_shape=128,
     mask_rad=1.0,
     # optional
-    low_pass_bandwidth=9.4,
+    low_pass_bandwidth=10,
 )
 
 data_loader = dict(
@@ -25,13 +25,15 @@ data_loader = dict(
     val_batch_per_gpu=128,
     workers_per_gpu=4,
 )
-work_dir_name = "10073"
+
 seed = 1
 exp_name = ""
 eval_mode = False
 do_ref_init = True
-knn_num = 32
+work_dir_name="10081"
 gmm = dict(tunable=False)
+
+knn_num = 16
 
 model = dict(model_type="VAE",
              input_space="real",
@@ -40,7 +42,7 @@ model = dict(model_type="VAE",
                  encoder_cls='MS-GAT',
                  decoder_cls='metaGNN',
                  e_hidden_dim=(512, 256, 128, 128),
-                 z_dim=64,
+                 z_dim=8,
                  latent_dim = 32,
                  attention_layer = 2,
                  d_hidden_dim=(256,512),
@@ -56,9 +58,6 @@ loss = dict(
     intra_chain_cutoff=12.,
     inter_chain_cutoff=0.,
     intra_chain_res_bound=None,
-    nt_intra_chain_cutoff=15.,
-    nt_inter_chain_cutoff=15.,
-    nt_intra_chain_res_bound=None,
     clash_min_cutoff=4.0,
     mask_rad_for_image_loss=0.9375,
     gmm_cryoem_weight=1.0,
@@ -76,11 +75,11 @@ optimizer = dict(lr=1e-4, )
 
 analyze = dict(cluster_k=10,skip_umap=False)
 
-runner = dict(log_every_n_step=100)
+runner = dict(log_every_n_step=100, )
 
-trainer = dict(max_epochs=80,
+trainer = dict(max_epochs=50,
                devices=1,
-               precision="32",
+               precision="16-mixed",
             #    num_sanity_val_steps=0,
             #    val_check_interval=6000,
                check_val_every_n_epoch=5)

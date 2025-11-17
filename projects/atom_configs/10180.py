@@ -1,9 +1,9 @@
 dataset_attr = dict(
     dataset_dir="/lustre/grp/gyqlab/share/cryoem_particles/10180/data",
-    starfile_path="/lustre/grp/gyqlab/share/cryoem_particles/10180/data/Example/consensus_data.star",
+    starfile_path="/lustre/grp/gyqlab/share/cryoem_particles/10180/data/Example/consensus_data_newest.star",
     apix=1.7,
     side_shape=320,
-    ref_pdb_path="/lustre/grp/gyqlab/share/cryoem_particles/10180/res/5nrl_centered.pdb",
+    ref_pdb_path="/lustre/grp/gyqlab/share/cryoem_particles/10180/res/5nrl_centered_clean.pdb",
 )
 
 extra_input_data_attr = dict(
@@ -11,7 +11,7 @@ extra_input_data_attr = dict(
     use_domain=False,
     domain_path=None,
     ckpt_path=None)
-
+work_dir_name='10180'
 
 data_process = dict(
     down_side_shape=128,
@@ -19,10 +19,9 @@ data_process = dict(
     # optional
     low_pass_bandwidth=23.4,
 )
-
 data_loader = dict(
-    train_batch_per_gpu=16,
-    val_batch_per_gpu=16,
+    train_batch_per_gpu=32,
+    val_batch_per_gpu=64,
     workers_per_gpu=4,
 )
 
@@ -32,18 +31,20 @@ eval_mode = False
 do_ref_init = True
 
 gmm = dict(tunable=False)
-
+knn_num=32
 model = dict(model_type="VAE",
              input_space="real",
-             ctf="v1",
+             ctf="v2",
              model_cfg=dict(
-                 encoder_cls='MLP',
-                 decoder_cls='MLP',
-                 e_hidden_dim=(512, 256, 128, 64, 32),
-                 latent_dim=8,
-                 d_hidden_dim=(512, 256, 128, 64, 32)[::-1],
-                 e_hidden_layers=5,
-                 d_hidden_layers=5,
+                 encoder_cls='MS-GAT',
+                 decoder_cls='metaGNN',
+                 e_hidden_dim=(512, 256, 128, 128),
+                 z_dim=64,
+                 latent_dim = 32,
+                 attention_layer = 2,
+                 d_hidden_dim=(256,512),
+                 e_hidden_layers=4,
+                d_hidden_layers=2,
              ))
 
 loss = dict(
@@ -68,13 +69,13 @@ loss = dict(
 
 optimizer = dict(lr=1e-4, )
 
-analyze = dict(cluster_k=10, skip_umap=True, downsample_shape=112)
+analyze = dict(cluster_k=10, skip_umap=False)
 
 runner = dict(log_every_n_step=50, )
 
-trainer = dict(max_steps=96000,
+trainer = dict(max_epochs=50,
                devices=1,
                precision="16-mixed",
-               num_sanity_val_steps=0,
-               val_check_interval=12000,
-               check_val_every_n_epoch=None)
+            #    num_sanity_val_steps=0,
+            #    val_check_interval=6000,
+               check_val_every_n_epoch=5)

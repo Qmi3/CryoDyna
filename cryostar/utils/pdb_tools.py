@@ -595,13 +595,13 @@ def extract_sec_ids_merge_small_blocks(pdb_file, dssp_exec='mkdssp', min_block_l
     parser = PDBParser(QUIET=True)
     structure = parser.get_structure('structure', pdb_file)
     model = structure[0]
-
     dssp = DSSP(model, pdb_file, dssp=dssp_exec)
 
     sec_ids_list = []
     residue_chain_ids = []
     block_id = -1
     nucleic_residue_indices = []
+    chain_nucleic_block_ids = {}  # 新增：用来存储每个链的核酸的块ID
 
     for chain in model:
         chain_id = chain.id
@@ -609,10 +609,15 @@ def extract_sec_ids_merge_small_blocks(pdb_file, dssp_exec='mkdssp', min_block_l
         is_nucleic = any(res.get_resname().strip() in {'DA', 'DT', 'DC', 'DG', 'A', 'U', 'C', 'G'} for res in residues)
 
         if is_nucleic:
+            # 每个链的核酸单独分配一个新的块ID
+            if chain_id not in chain_nucleic_block_ids:
+                block_id += 1  # 为每个链的核酸分配一个新的block_id
+                chain_nucleic_block_ids[chain_id] = block_id
+
             for res in residues:
                 residue_chain_ids.append(chain_id)
                 nucleic_residue_indices.append(len(residue_chain_ids) - 1)
-                sec_ids_list.append('NA')
+                sec_ids_list.append(chain_nucleic_block_ids[chain_id])  # 核酸残基使用特定的block_id
         else:
             ss_labels = []
             res_indices = []
@@ -621,8 +626,9 @@ def extract_sec_ids_merge_small_blocks(pdb_file, dssp_exec='mkdssp', min_block_l
             for res in residues:
                 res_id = res.get_id()
                 dssp_key = (chain_id, res_id)
-                if not is_aa(res, standard=True):
-                    continue
+                # if not is_aa(res, standard=True):
+                #     print(dssp_key)
+                #     continue
                 if dssp_key in dssp:
                     raw_ss = dssp[dssp_key][2]
                 else:
@@ -642,7 +648,7 @@ def extract_sec_ids_merge_small_blocks(pdb_file, dssp_exec='mkdssp', min_block_l
                     j += 1
                 length = j - i
 
-                if length < min_block_len and block_id >= 0:
+                if length < 3 and block_id >= 0:
                     # merge 到前一个 block
                     sec_ids_tmp[i:j] = [block_id] * length
                 else:
@@ -653,13 +659,6 @@ def extract_sec_ids_merge_small_blocks(pdb_file, dssp_exec='mkdssp', min_block_l
             # 将编号添加进总列表
             for idx in res_indices:
                 sec_ids_list.append(sec_ids_tmp.pop(0))
-
-    # 处理核酸残基：统一编号为下一个 block_id
-    if nucleic_residue_indices:
-        block_id += 1
-        for i in nucleic_residue_indices:
-            sec_ids_list[i] = block_id
-
     sec_ids = np.array(sec_ids_list)
     return sec_ids, np.array(residue_chain_ids)
 

@@ -3,7 +3,7 @@ dataset_attr = dict(
     starfile_path="/lustre/grp/gyqlab/share/cryoem_particles/10328/data/J505_stack.star",
     apix=1.059,
     side_shape=256,
-    ref_pdb_path="/lustre/grp/gyqlab/share/cryoem_particles/10328/data/7k65_centered.pdb",
+    ref_pdb_path="/lustre/grp/gyqlab/share/cryoem_particles/10328/data/7k65_centered_clean.pdb",
 )
 
 extra_input_data_attr = dict(
@@ -21,7 +21,7 @@ data_process = dict(
     down_side_shape=128,
     mask_rad=1.0,
     # optional generally setting
-    low_pass_bandwidth=10,
+    # low_pass_bandwidth=10,
 )
 
 data_loader = dict(
@@ -42,14 +42,18 @@ model = dict(model_type="VAE",
              input_space="real",
              ctf="v2",
              model_cfg=dict(
-                 encoder_cls='MLP',
-                 decoder_cls='GNN_with_prior',
-                 e_hidden_dim=(512, 256, 128, 64, 16),
-                 latent_dim=8,
-                 d_hidden_dim=32,
-                #  d_hidden_dim=(12, 12, 16)[::-1],
-                 e_hidden_layers=5,
-                 d_hidden_layers=3,
+                 encoder_cls='MS-GAT',
+                 decoder_cls='metaGNN',
+                 e_hidden_dim=(512, 256, 128, 128),
+                 z_dim=128,
+                 latent_dim = 32,
+                 attention_layer = 2,
+                 d_hidden_dim=(128,128),
+                #  d_e_hidden_dim=32,
+                #  d_hidden_dim=(512, 256, 128, 64, 32)[::-1],
+                #  d_hidden_dim=(512,32,12)[::-1],
+                 e_hidden_layers=4,
+                d_hidden_layers=2,
                 #  pe_dim = 8,
              ))
 
@@ -76,16 +80,16 @@ loss = dict(
 
 optimizer = dict(lr=1e-4, )
 
-analyze = dict(cluster_k=10, skip_umap=False, downsample_shape=112)
+analyze = dict(cluster_k=10, skip_umap=False)
 
 runner = dict(log_every_n_step=100)
 
 trainer = dict(max_epochs=30,
-               devices=2,
+               devices=1,
                precision="16-mixed",
-               num_sanity_val_steps=0,
+            #    num_sanity_val_steps=0,
             #    val_check_interval=1000,
-               check_val_every_n_epoch=1)
+               check_val_every_n_epoch=3)
 
 # pose_searcher = dict(base_healpy=1,
 #                      kmin=12,

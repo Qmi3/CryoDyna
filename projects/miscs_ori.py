@@ -16,9 +16,9 @@ import torch.nn.functional as F
 
 from cryostar.common.residue_constants import ca_ca
 from cryostar.utils.misc import log_to_current
-from cryostar.utils.ml_modules import VAEEncoder, EGNNDecoder, reparameterize,Decoder,  GATEncoder,HierarchicalDeltaGNN, MultiScaleGATEncoder
+from cryostar.utils.ml_modules import VAEEncoder, Decoder, reparameterize
 from cryostar.utils.ctf import parse_ctf_star
-# from cryostar.openfold.utils.utils import positionalencoding1d,positionalencoding2d
+
 from lightning.pytorch.utilities import rank_zero_only
 from typing import Union
 
@@ -54,26 +54,12 @@ def low_pass_mask3d(shape, apix=1., bandwidth=2):
 
 def low_pass_mask2d(shape, apix=1., bandwidth=2):
     freq = np.fft.fftshift(np.fft.fftfreq(shape, apix))
-    # why **2 maybe 2d要这么算 mask更高频信息
     freq = freq**2
     freq = np.sqrt(freq[:, None] + freq[None, :])
-    mask = np.asarray((freq < 1 / bandwidth) , dtype=np.float32) 
+
+    mask = np.asarray(freq < 1 / bandwidth, dtype=np.float32)
     return mask
 
-
-def get_edges_batch(edges,edge_attr,n_nodes, batch_size):
-    
-    edges = torch.LongTensor(edges)
-    rows, cols = [], []
-    for i in range(batch_size):
-        rows.append(edges[:,0] + n_nodes * i)
-        cols.append(edges[:,1] + n_nodes * i)
-    # edges = [torch.cat(rows), torch.cat(cols)]
-    edges = torch.stack([torch.cat(rows), torch.cat(cols)], dim=-1)
-    # edge_attr = torch.tensor(edge_attr).repeat(batch_size,1)
-    edge_attr = torch.tensor(edge_attr).repeat(batch_size).unsqueeze(1)
-    # return edges,edge_attr,edge_bond.unsqueeze(1)
-    return edges,edge_attr
 
 def calc_clash_loss(pred_struc, pair_index, clash_cutoff=4.0):
     pred_dist = pred_struc[:, pair_index]  # bsz, num_pair, 2, 3
@@ -243,118 +229,35 @@ class VAE(nn.Module):
         encoder_cls: str,
         decoder_cls: str,
         in_dim: int,
-        # edge_index: np.array,
-        # edge_dist: np.array,
-        # edge_bond: np.array,
-        # pos:np.array,
-        # pae:np.array,
-        out_dim: int,
-        sec_ids: list,
-        meta_edge_index: np.array,
-        edge_dist:np.array,
-        pe_vector:np.array,
-        meta_2_node_edge:torch.tensor,
-        meta_2_node_vector:torch.tensor,
-        attention_layer:int,
         e_hidden_dim: Union[int, list, tuple],
-        z_dim:int,
         latent_dim: int,
-        d_hidden_dim:Union[int, list, tuple],
-        # d_e_hidden_dim:int,
-        # d_hidden_dim: Union[int, list, tuple],
-        # out_dim: int,
+        d_hidden_dim: Union[int, list, tuple],
+        out_dim: int,
         e_hidden_layers: int,
         d_hidden_layers: int,
-        # pe_dim:int
     ):
         super().__init__()
         if encoder_cls == "MLP":
-            self.encoder = VAEEncoder(in_dim, e_hidden_dim, z_dim, e_hidden_layers)
-        elif encoder_cls == "GAT":
-            self.encoder = GATEncoder(in_dim, e_hidden_dim, attention_layer, z_dim, e_hidden_layers)
-        elif encoder_cls == "MS-GAT":
-            self.encoder = MultiScaleGATEncoder(in_dim, e_hidden_dim, attention_layer, z_dim, e_hidden_layers)
+            self.encoder = VAEEncoder(in_dim, e_hidden_dim, latent_dim, e_hidden_layers)
         else:
             raise Exception()
-        # self.edges = edge_index
-        # #self.edge_dist = edge_dists
-        # self.edge_attr = edge_bond
-        # self.pe_dim = pe_dim
-        # self.mapping_adapter = Adapter(latend_dim,out_dim)
-        # self.mapping_layer = nn.Sequential(nn.Linear(latent_dim , points_num * d_hidden_dim),nn.SiLU())
-        # self.pos = pos
-        # self.pae = torch.from_numpy(pae)
+
         if decoder_cls == "MLP":
-            # self.decoder = Decoder(latent_dim+pe_dim, d_hidden_dim, out_dim, d_hidden_layers)
-            self.decoder = Decoder(z_dim, d_hidden_dim, out_dim, d_hidden_layers)
-        elif decoder_cls == "GNN_with_prior":
-            self.decoder = EGNNDecoder(d_hidden_dim, d_hidden_layers)
-        elif decoder_cls == "metaGNN":
-            self.decoder = HierarchicalDeltaGNN(in_dim = z_dim, d_hidden_dim = d_hidden_dim, latent_dim = latent_dim, sec_ids=sec_ids, meta_edge_index=meta_edge_index, 
-                                                edge_dist=edge_dist, pe_vector = pe_vector,meta_2_node_edge = meta_2_node_edge, meta_2_node_vector = meta_2_node_vector,out_dim=out_dim)
+            self.decoder = Decoder(latent_dim, d_hidden_dim, out_dim, d_hidden_layers)
         else:
             print(f"{decoder_cls} not in presets, you may set it manually later.")
             self.decoder: torch.nn.Module
-        # self.layer_norm = nn.LayerNorm(384)
 
-    def encode(self,x):
-        # mean = self.encoder(x)
-        # return mean
-        mean = self.encoder(x)
-        return mean
+    def encode(self, x, idx):
+        mean, log_var = self.encoder(x)
+        return mean, log_var
 
-    # def mapping(self,z):
-    #     h = self.mapping_layer(z)
-    #     return h
-    # def latent_encoding(self,z,L):
-    #     bz = z.shape[0]
-    #     pe = positionalencoding2d(self.pe_dim,L,L)
-    #     z = z.repeat_interleave(L*L,dim=0)
-    #     pe = pe.view(L*L,-1).repeat(bz,1).to(z.device)
-    #     z_new = torch.cat([z,pe],-1)
-    #     return z_new
-    def forward(self, img):
-        z = self.encode(img)
-        # z = self.encode(img)
-        # z = reparameterize(mean, log_var)
-        # out = self.decoder(z, self.pos, self.pae)
+    def forward(self, x, idx, *args):
+        mean, log_var = self.encode(x, idx)
+        z = reparameterize(mean, log_var)
         out = self.decoder(z)
-        return out, z
+        return out, mean, log_var
     
-    def eval_z(self, z):
-        # out = self.decoder(z, self.pos, self.pae)
+    def eval_z(self,z):
         out = self.decoder(z)
         return out
-    
-    # def forward(self, img):
-    #     L = xyz_0.shape[0]
-    #     mean, log_var = self.encode(img)
-    #     z = reparameterize(mean, log_var)
-    #     h = self.mapping(z)
-    #     h = h.view(img.shape[0]* L,-1)
-    #     xyz_0 = xyz_0.repeat(img.shape[0],1)
-    #     # extract 64 edges from reference structure
-    #     edges_batch,edge_attr_batch = get_edges_batch(self.edges, self.edge_attr,L,img.shape[0])
-    #     # edges_batch,edge_attr_batch,edge_bond_batch = get_edges_batch(self.edges, self.edge_attr,self.edge_bond ,L,img.shape[0])
-    #     # encode the edge features
-    #     # print(edges_batch[0].shape,edges_batch[1].shape,edge_attr_batch.shape,edge_bond_batch.shape)
-    #     edges_batch,edge_attr_batch = edges_batch.to(img.device),edge_attr_batch.to(img.device)
-    #     out = self.decoder(h,xyz_0,edges_batch,edge_attr_batch)
-    #     out = out.view(img.shape[0],L,-1)
-    #     return out, mean, log_var
-    
-    # def eval_z(self, z , xyz_0):
-    #     L = xyz_0.shape[0]
-    #     hidden = self.mapping(z)
-    #     hidden = hidden.view(z.shape[0]*L,-1)
-    #     xyz_0 = xyz_0.repeat(z.shape[0],1)
-    #     # extract 64 edges from reference structure
-    #     # edges_batch,edge_attr_batch = get_edges_batch(self.edges, self.edge_attr,self.edge_bond ,L,z.shape[0])
-    #     # encode the edge features
-    #     edges_batch,edge_attr_batch = get_edges_batch(self.edges, self.edge_attr,L,z.shape[0])
-    #     edges_batch,edge_attr_batch = edges_batch.to(z.device),edge_attr_batch.to(z.device)
-    #     # import pdb;pdb.set_trace()
-    #     out = self.decoder(hidden,xyz_0,edges_batch,edge_attr_batch)
-    #     out = out.view(z.shape[0],L,-1)
-    #     return out
-
