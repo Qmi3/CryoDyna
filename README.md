@@ -1,19 +1,14 @@
-# CryoDyna
-Modeling macromolecule conformational dynamics from 2D particle images at near-atomic scale using CryoDyna 
+#CryoDyna: Multiscale end-to-end modeling of cryo-EM macromolecule dynamics with physics-aware neural network
 [🏠 Homepage](https://bytedance.github.io/cryostar/) |
 [📚 User Guide](https://byte-research.gitbook.io/cryostar/)
-
-`CryoSTAR` is a neural network based framework for recovering conformational heterogenity of protein complexes. By leveraging the structural prior and constraints from a reference `pdb` model, `cryoSTAR` can output both the protein structure and density map.
-
-![main figure](./assets/main_fig.png)
 
 ## User Guide
 The detailed user guide can be found at [here](https://byte-research.gitbook.io/cryostar/). This comprehensive guide provides in-depth information about the topic at hand. Feel free to visit the link if you're seeking more knowledge or need extensive instructions regarding the topic. 
 
 ## Installation
 
-- Create a conda environment: `conda create -n cryostar python=3.9 -y`
-- Clone this repository and install the package: `git clone https://github.com/bytedance/cryostar.git && cd cryostar && pip install .`
+- Create a conda environment: `conda create -n cryodyna python=3.9 -y`
+- Clone this repository and install the package: `git clone https://github.com/Qmi3/cryodyna.git && cd cryodyna && pip install .`
 
 ## Quick start
 
