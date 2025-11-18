@@ -5,7 +5,7 @@ dataset_attr = dict(
     side_shape=128,
     ref_pdb_path="/lustre/grp/gyqlab/share/cryoem_particles/tutorial_data_1ake/pdbs/1akeA_50.pdb",
 )
-work_dir_name = "1ake_3layer_with_af"
+work_dir_name = "1ake"
 extra_input_data_attr = dict(
     nma_path="",
     use_domain=False,

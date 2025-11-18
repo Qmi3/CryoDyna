@@ -1,0 +1,34 @@
+autoflake==2.2.1
+biopython==1.83
+biotite==0.39.0
+dm-tree==0.1.8
+gemmi==0.6.4
+jupyterlab==4.0.11
+lazy_loader==0.3
+lightning==2.1.3
+matplotlib==3.8.2
+MDAnalysis==2.7.0
+mmcv-lite==2.1.0
+mmengine==0.10.2
+mrcfile==1.5.0
+numba==0.58.1
+numpy==1.26.3
+opencv-python==4.9.0.80
+pandas==2.2.0
+pre-commit==3.6.0
+protobuf==3.20.0
+scikit-learn==1.4.0
+scipy==1.12.0
+starfile
+tabulate==0.9.0
+tensorboard==2.15.1
+# tensorflow-cpu==2.11.0
+torch==2.1.2
+torch-cluster @https://pytorch-geometric.com/whl/torch-2.1.2+cu121.html
+torch-scatter @https://pytorch-geometric.com/whl/torch-2.1.2+cu121.html
+torch_geometric
+torchinfo==1.8.0
+torchmetrics==1.3.0.post0
+torchvision==0.16.2
+tqdm==4.64.0
+umap-learn==0.5.5

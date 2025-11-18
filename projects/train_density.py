@@ -11,17 +11,16 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 from mmengine import mkdir_or_exist
 import sys
-sys.path.insert(0,'/lustre/grp/gyqlab/zhangcw/CryoDyna')
-from cryostar.utils.dataio import StarfileDataSet, StarfileDatasetConfig
-from cryostar.nerf.volume_utils import ImplicitFourierVolume
-from cryostar.utils.transforms import SpatialGridTranslate, FourierGridTranslate
-from cryostar.utils.ctf_utils import CTFRelion, CTFCryoDRGN
-from cryostar.utils.fft_utils import (fourier_to_primal_2d, primal_to_fourier_2d)
-from cryostar.utils.latent_space_utils import sample_along_pca, get_nearest_point, cluster_kmeans
-from cryostar.utils.misc import (pl_init_exp, create_circular_mask, log_to_current, pretty_dict)
-from cryostar.utils.losses import calc_kl_loss
-from cryostar.utils.ml_modules import VAEEncoder, reparameterize
-from cryostar.utils.mrc_tools import save_mrc
+from cryodyna.utils.dataio import StarfileDataSet, StarfileDatasetConfig
+from cryodyna.nerf.volume_utils import ImplicitFourierVolume
+from cryodyna.utils.transforms import SpatialGridTranslate, FourierGridTranslate
+from cryodyna.utils.ctf_utils import CTFRelion, CTFCryoDRGN
+from cryodyna.utils.fft_utils import (fourier_to_primal_2d, primal_to_fourier_2d)
+from cryodyna.utils.latent_space_utils import sample_along_pca, get_nearest_point, cluster_kmeans
+from cryodyna.utils.misc import (pl_init_exp, create_circular_mask, log_to_current, pretty_dict)
+from cryodyna.utils.losses import calc_kl_loss
+from cryodyna.utils.ml_modules import VAEEncoder, reparameterize
+from cryodyna.utils.mrc_tools import save_mrc
 
 from projects.miscs import infer_ctf_params_from_config
 
