@@ -110,5 +110,13 @@ density_xxxxx/
 ## Reference
 You may cite this software by:
 ```bibtex
-
+@misc{zhang2025cryodynamultiscaleendtoendmodeling,
+      title={CryoDyna: Multiscale end-to-end modeling of cryo-EM macromolecule dynamics with physics-aware neural network}, 
+      author={Chengwei Zhang and Shimian Li and Yihao Niu and Zhen Zhu and Sihao Yuan and Sirui Liu and Yi Qin Gao},
+      year={2025},
+      eprint={2510.16510},
+      archivePrefix={arXiv},
+      primaryClass={q-bio.BM},
+      url={https://arxiv.org/abs/2510.16510}, 
+}
 ```
