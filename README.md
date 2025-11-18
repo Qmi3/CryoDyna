@@ -13,19 +13,19 @@ The detailed user guide can be found at [here](https://byte-research.gitbook.io/
 
 ### Preliminary
 
-You may need to prepare the resources below before running `cryoSTAR`:
+You may need to prepare the resources below before running `CryoDyna`:
 
 - a concensus map (along with each particle's pose)
 - a pdb file (which has been docked into the concensus map)
 
 ### Training
-CryoSTAR operates through a two-stage approach where it independently trains an atom generator and a density generator. Here's an illustration of its process:
+CryoDyna predicts conformational heterogeneity in two distinct level(residue-level and bead-level). Here's an illustration of its process:
 
-#### S1: Training the atom generator
-In this step, we generate an ensemble of coarse-grained protein structures from the particles. Note that the `pdb` file is used in this step and it should be docked into the concensus map!
+#### Training the residue-level deformation field
+In this step, we generate an ensemble of molecule structures from the particles with Ca/P atom representing each residue. Note that the `pdb` file is used in this step and it should be docked into the concensus map!
 
 ```shell
-cd projects/star
+cd projects
 python train_atom.py atom_configs/1ake.py
 ```
 
@@ -50,9 +50,38 @@ atom_xxxxx/
 └── train_atom.py        # a backup of the training script
 ```
 
-#### S2: Training the density generator
+#### Stage2: Training the bead-level deformation field
+In this step, we generate an ensemble of molecule structures from the particles with 1-6 beads representing each residue.
 
-In step 1, the atom generator assigns a latent code `z` to each particle image. In this step, we will drop the encoder and directly use the latent code as a representation of a partcile. You can execute the subsequent command to initiate the training of a density generator.
+```shell
+cd projects
+python train_atom.py cg_configs/1ake.py
+```
+
+The outputs will be stored in the `work_dirs/atom_xxxxx` directory, and we perform evaluations every 12,000 steps. Within this directory, you'll observe sub-directories with the name `epoch-number_step-number`. We choose the most recent directory as the final results.
+
+```text
+atom_xxxxx/
+├── 0000_0000000/
+├── ...
+├── 0112_0096000/        # evaluation results
+│  ├── ckpt.pt           # model parameters
+│  ├── input_image.png   # visualization of input cryo-EM images
+│  ├── pca-1.pdb         # sampled coarse-grained atomic structures along 1st PCA axis
+│  ├── pca-2.pdb
+│  ├── pca-3.pdb
+│  ├── pred.pdb          # sampled structures at Kmeans cluster centers
+│  ├── pred_gmm_image.png
+│  └── z.npy             # the latent code of each particle
+|                        # a matrix whose shape is num_of_particle x 8
+├── yyyymmdd_hhmmss.log  # running logs
+├── config.py            # a backup of the config file
+└── train_atom.py        # a backup of the training script
+```
+
+### Validation: Training the density generator
+
+In step 1/2, the atom generator assigns a latent code `z` to each particle image. In this step, we will drop the encoder and directly use the latent code as a representation of a partcile. You can execute the subsequent command to initiate the training of a density generator.
 
 ```shell
 # change the xxx/z.npy path to the output of the above command
@@ -81,15 +110,5 @@ density_xxxxx/
 ## Reference
 You may cite this software by:
 ```bibtex
-@article{li2023cryostar,
-author={Li, Yilai and Zhou, Yi and Yuan, Jing and Ye, Fei and Gu, Quanquan},
-title={CryoSTAR: leveraging structural priors and constraints for cryo-EM heterogeneous reconstruction},
-journal={Nature Methods},
-year={2024},
-month={Oct},
-day={29},
-issn={1548-7105},
-doi={10.1038/s41592-024-02486-1},
-url={https://doi.org/10.1038/s41592-024-02486-1}
-}
+
 ```
