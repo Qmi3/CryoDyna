@@ -31,7 +31,7 @@ from cryodyna.utils.ctf_utils import CTFRelion, CTFCryoDRGN
 from cryodyna.utils.losses import calc_cor_loss, calc_kl_loss
 from cryodyna.utils.misc import log_to_current, \
     pl_init_exp, pretty_dict, set_seed, warmup
-from cryodyna.utils.pdb_tools import bt_save_pdb, extract_sec_ids_merge_small_blocks, build_metagraph_knn_from_centroids, get_kplus_neighbor_metanodes
+from cryodyna.utils.pdb_tools import bt_save_pdb, extract_sec_ids_merge_small_blocks_CG, build_metagraph_knn_from_centroids, get_kplus_neighbor_metanodes
 from cryodyna.gmm.gmm import EMAN2Grid, batch_projection, Gaussian
 from cryodyna.gmm.deformer import E3Deformer, NMADeformer
 from cryodyna.utils.fft_utils import primal_to_fourier_2d, fourier_to_primal_2d
@@ -47,7 +47,7 @@ from cryodyna.utils.pl_utils import merge_step_outputs, squeeze_dict_outputs_1st
     filter_outputs_by_indices, get_1st_unique_indices
 from cryodyna.utils.align import _get_rmsd_loss
 from scipy.spatial.distance import cdist
-from miscs import calc_pair_dist_loss, calc_clash_loss, low_pass_mask2d, VAE, infer_ctf_params_from_config
+from miscs import calc_pair_dist_loss, calc_clash_loss, low_pass_mask2d, VAE_CG, infer_ctf_params_from_config
 from cryodyna.martini.IO import streamTag, pdbFrame, pdbChains, residues, Chain, pdbOut, pdbBoxString
 from cryodyna.martini.TOP import Topology
 
@@ -241,7 +241,7 @@ class CryoEMTask(pl.LightningModule):
         log_to_current(f"Reference structure has {num_pts} bead coordinates")
         log_to_current(f"1st GMM blob amplitude {ref_amps[0].item()}, mean sigma {ref_sigmas.mean().item()}")
 
-        sec_ids = extract_sec_ids_merge_small_blocks(ss_per_chain,min_block_len=3)
+        sec_ids = extract_sec_ids_merge_small_blocks_CG(ss_per_chain,min_block_len=3)
         meta_edge_index, centroids = build_metagraph_knn_from_centroids(pos=backbone_coords,sec_ids=sec_ids,k=cfg.knn_num)
 
         centroid_distances = cdist(centroids, centroids)
@@ -288,8 +288,7 @@ class CryoEMTask(pl.LightningModule):
             in_dim = cfg.data_process.down_side_shape ** 2
         else:
             raise NotImplementedError
-
-        self.model = VAE(in_dim=in_dim,
+        self.model = VAE_CG(in_dim=in_dim,
                         out_dim=num_pts * 3 if nma_modes is None else 6 + nma_modes.shape[1],
                         sec_ids = torch.from_numpy(np.array(sec_ids)).long(),
                         beads_ids = torch.from_numpy(res_id_non_rb),

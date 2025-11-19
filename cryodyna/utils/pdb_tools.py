@@ -585,11 +585,11 @@ class SheetPlotter(graphics.FeaturePlotter):
 from Bio.PDB import PDBParser, DSSP, is_aa
 import numpy as np
 
-# SS8_TO_SS3 = {
-#     'G': 'H', 'H': 'H', 'I': 'H',
-#     'E': 'E', 'B': 'E',
-#     'S': 'C', 'T': 'C', '-': 'C', 'C': 'C'
-# }
+SS8_TO_SS3 = {
+    'G': 'H', 'H': 'H', 'I': 'H',
+    'E': 'E', 'B': 'E',
+    'S': 'C', 'T': 'C', '-': 'C', 'C': 'C'
+}
 SS10_TO_SS4 = {
     '1': 'H', '2': 'H', '3': 'H','H': 'H',
     'E': 'E', 
@@ -598,7 +598,7 @@ SS10_TO_SS4 = {
     'N':'N'
 }
 
-def extract_sec_ids_merge_small_blocks(ss_per_chain, min_block_len=3):
+def extract_sec_ids_merge_small_blocks_CG(ss_per_chain, min_block_len=3):
     block_id = -1
     sec_ids_list = []
     for ss_chain in ss_per_chain:
@@ -627,76 +627,76 @@ def extract_sec_ids_merge_small_blocks(ss_per_chain, min_block_len=3):
             sec_ids_list.append(sec_ids_tmp.pop(0))
     return sec_ids_list
 
-# def extract_sec_ids_merge_small_blocks(pdb_file, dssp_exec='mkdssp', min_block_len=3):
-#     parser = PDBParser(QUIET=True)
-#     structure = parser.get_structure('structure', pdb_file)
-#     model = structure[0]
-#     dssp = DSSP(model, pdb_file, dssp=dssp_exec)
+def extract_sec_ids_merge_small_blocks(pdb_file, dssp_exec='mkdssp', min_block_len=3):
+    parser = PDBParser(QUIET=True)
+    structure = parser.get_structure('structure', pdb_file)
+    model = structure[0]
+    dssp = DSSP(model, pdb_file, dssp=dssp_exec)
 
-#     sec_ids_list = []
-#     residue_chain_ids = []
-#     block_id = -1
-#     nucleic_residue_indices = []
-#     chain_nucleic_block_ids = {}  # 新增：用来存储每个链的核酸的块ID
+    sec_ids_list = []
+    residue_chain_ids = []
+    block_id = -1
+    nucleic_residue_indices = []
+    chain_nucleic_block_ids = {}  # 新增：用来存储每个链的核酸的块ID
 
-#     for chain in model:
-#         chain_id = chain.id
-#         residues = list(chain.get_residues())
-#         is_nucleic = any(res.get_resname().strip() in {'DA', 'DT', 'DC', 'DG', 'A', 'U', 'C', 'G'} for res in residues)
+    for chain in model:
+        chain_id = chain.id
+        residues = list(chain.get_residues())
+        is_nucleic = any(res.get_resname().strip() in {'DA', 'DT', 'DC', 'DG', 'A', 'U', 'C', 'G'} for res in residues)
 
-#         if is_nucleic:
-#             # 每个链的核酸单独分配一个新的块ID
-#             if chain_id not in chain_nucleic_block_ids:
-#                 block_id += 1  # 为每个链的核酸分配一个新的block_id
-#                 chain_nucleic_block_ids[chain_id] = block_id
+        if is_nucleic:
+            # 每个链的核酸单独分配一个新的块ID
+            if chain_id not in chain_nucleic_block_ids:
+                block_id += 1  # 为每个链的核酸分配一个新的block_id
+                chain_nucleic_block_ids[chain_id] = block_id
 
-#             for res in residues:
-#                 residue_chain_ids.append(chain_id)
-#                 nucleic_residue_indices.append(len(residue_chain_ids) - 1)
-#                 sec_ids_list.append(chain_nucleic_block_ids[chain_id])  # 核酸残基使用特定的block_id
-#         else:
-#             ss_labels = []
-#             res_indices = []
+            for res in residues:
+                residue_chain_ids.append(chain_id)
+                nucleic_residue_indices.append(len(residue_chain_ids) - 1)
+                sec_ids_list.append(chain_nucleic_block_ids[chain_id])  # 核酸残基使用特定的block_id
+        else:
+            ss_labels = []
+            res_indices = []
 
-#             # Step 1: 解析每个残基的 SS3 类型
-#             for res in residues:
-#                 res_id = res.get_id()
-#                 dssp_key = (chain_id, res_id)
-#                 # if not is_aa(res, standard=True):
-#                 #     print(dssp_key)
-#                 #     continue
-#                 if dssp_key in dssp:
-#                     raw_ss = dssp[dssp_key][2]
-#                 else:
-#                     raw_ss = 'C'
-#                 ss = SS8_TO_SS3.get(raw_ss, 'C')
-#                 ss_labels.append(ss)
-#                 residue_chain_ids.append(chain_id)
-#                 res_indices.append(len(residue_chain_ids) - 1)
+            # Step 1: 解析每个残基的 SS3 类型
+            for res in residues:
+                res_id = res.get_id()
+                dssp_key = (chain_id, res_id)
+                # if not is_aa(res, standard=True):
+                #     print(dssp_key)
+                #     continue
+                if dssp_key in dssp:
+                    raw_ss = dssp[dssp_key][2]
+                else:
+                    raw_ss = 'C'
+                ss = SS8_TO_SS3.get(raw_ss, 'C')
+                ss_labels.append(ss)
+                residue_chain_ids.append(chain_id)
+                res_indices.append(len(residue_chain_ids) - 1)
 
-#             # Step 2: 分块 + merge 短块
-#             sec_ids_tmp = [None] * len(ss_labels)
-#             i = 0
-#             while i < len(ss_labels):
-#                 current_ss = ss_labels[i]
-#                 j = i
-#                 while j < len(ss_labels) and ss_labels[j] == current_ss:
-#                     j += 1
-#                 length = j - i
+            # Step 2: 分块 + merge 短块
+            sec_ids_tmp = [None] * len(ss_labels)
+            i = 0
+            while i < len(ss_labels):
+                current_ss = ss_labels[i]
+                j = i
+                while j < len(ss_labels) and ss_labels[j] == current_ss:
+                    j += 1
+                length = j - i
 
-#                 if length < 3 and block_id >= 0:
-#                     # merge 到前一个 block
-#                     sec_ids_tmp[i:j] = [block_id] * length
-#                 else:
-#                     block_id += 1
-#                     sec_ids_tmp[i:j] = [block_id] * length
-#                 i = j
+                if length < 3 and block_id >= 0:
+                    # merge 到前一个 block
+                    sec_ids_tmp[i:j] = [block_id] * length
+                else:
+                    block_id += 1
+                    sec_ids_tmp[i:j] = [block_id] * length
+                i = j
 
-#             # 将编号添加进总列表
-#             for idx in res_indices:
-#                 sec_ids_list.append(sec_ids_tmp.pop(0))
-#     sec_ids = np.array(sec_ids_list)
-#     return sec_ids, np.array(residue_chain_ids)
+            # 将编号添加进总列表
+            for idx in res_indices:
+                sec_ids_list.append(sec_ids_tmp.pop(0))
+    sec_ids = np.array(sec_ids_list)
+    return sec_ids, np.array(residue_chain_ids)
 
 import torch
 from torch_scatter import scatter_mean
