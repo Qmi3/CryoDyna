@@ -47,7 +47,7 @@ from cryodyna.utils.pl_utils import merge_step_outputs, squeeze_dict_outputs_1st
     filter_outputs_by_indices, get_1st_unique_indices
 from cryodyna.utils.align import _get_rmsd_loss
 from scipy.spatial.distance import cdist
-from miscs import calc_pair_dist_loss, calc_clash_loss, low_pass_mask2d, VAE_CG, infer_ctf_params_from_config
+from miscs import calc_pair_dist_loss, calc_clash_loss, low_pass_mask2d, VAE, infer_ctf_params_from_config
 from cryodyna.martini.IO import streamTag, pdbFrame, pdbChains, residues, Chain, pdbOut, pdbBoxString
 from cryodyna.martini.TOP import Topology
 
