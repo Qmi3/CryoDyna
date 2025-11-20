@@ -53,6 +53,7 @@ model = dict(model_type="VAE",
                  d_hidden_dim=(128,128),
                  e_hidden_layers=4,
                  d_hidden_layers=2,
+                 is_CG=True,
              ))
 loss = dict(
     nonbonded_cutoff=12,
@@ -66,23 +67,9 @@ loss = dict(
     Morse_a=1.0,
     intra_chain_cutoff=12.,
     inter_chain_cutoff=0.,
-    intra_chain_res_bound=None,
-    # nt_intra_chain_cutoff=15.,
-    # nt_inter_chain_cutoff=15.,
-    # nt_intra_chain_res_bound=None,
-    # inter_chain_cutoff_aa_nt=12.,   
+    intra_chain_res_bound=None,  
     dist_weight=1.0,
-    # dist_penalty_weight = 1.0,
-    dist_keep_ratio=0.8,
-    # dist_keep_ratio_aa_nt=0.8,
-    # dist_keep_ratio_intra=0.8,
-    # dist_keep_ratio_inter=0,
-    warmup_step=10000,
-    kl_beta_upper=0.5,
-    free_bits=3.0,
-    beta_rec=1.0, 
-    beta_neg=1.0,
-    gamma_r=1e-8)
+    dist_keep_ratio=0.8)
 
 optimizer = dict(lr=1e-4,)
 

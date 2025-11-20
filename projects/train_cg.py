@@ -288,16 +288,16 @@ class CryoEMTask(pl.LightningModule):
             in_dim = cfg.data_process.down_side_shape ** 2
         else:
             raise NotImplementedError
-        self.model = VAE_CG(in_dim=in_dim,
+        self.model = VAE(in_dim=in_dim,
                         out_dim=num_pts * 3 if nma_modes is None else 6 + nma_modes.shape[1],
-                        sec_ids = torch.from_numpy(np.array(sec_ids)).long(),
-                        beads_ids = torch.from_numpy(res_id_non_rb),
-                        meta_edge_index = meta_edge_index.long(),
-                        edge_dist = torch.from_numpy(edge_dist).float(),
-                        pe_vector_res_2_meta = torch.stack(pe_vector_res_2_meta,dim=0),
-                        pe_vector_bead_2_res = torch.stack(pe_vector_bead_2_res,dim=0),
-                        meta_2_node_edge = meta_2_node_edge.long(),
-                        meta_2_node_vector = meta_2_node_vector,
+                        sec_ids=torch.from_numpy(np.array(sec_ids)).long(),
+                        meta_edge_index=meta_edge_index.long(),
+                        edge_dist=torch.from_numpy(edge_dist).float(),
+                        meta_2_node_edge=meta_2_node_edge.long(),
+                        meta_2_node_vector=meta_2_node_vector,
+                        beads_ids=torch.from_numpy(res_id_non_rb),
+                        pe_vector_res_2_meta=torch.stack(pe_vector_res_2_meta,dim=0),
+                        pe_vector_bead_2_res=torch.stack(pe_vector_bead_2_res,dim=0),
                         **cfg.model.model_cfg)
 
         if nma_modes is None:
