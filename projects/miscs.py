@@ -18,7 +18,7 @@ import torch.nn.functional as F
 
 from cryodyna.common.residue_constants import ca_ca
 from cryodyna.utils.misc import log_to_current
-from cryodyna.utils.ml_modules import VAEEncoder, EGNNDecoder, reparameterize,Decoder,  GATEncoder,HierarchicalDeltaGNN, MultiScaleGATEncoder
+from cryodyna.utils.ml_modules import VAEEncoder, EGNNDecoder, reparameterize,Decoder,  GATEncoder,HierarchicalDeltaGNN, MultiScaleGATEncoder, HierarchicalDeltaGNN_CG
 from cryodyna.utils.ctf import parse_ctf_star
 from lightning.pytorch.utilities import rank_zero_only
 from typing import Union
@@ -105,7 +105,6 @@ class VAE(nn.Module):
         sec_ids: list,
         meta_edge_index: np.array,
         edge_dist:np.array,
-        pe_vector:np.array,
         meta_2_node_edge:torch.tensor,
         meta_2_node_vector:torch.tensor,
         attention_layer:int,
@@ -115,6 +114,11 @@ class VAE(nn.Module):
         d_hidden_dim:Union[int, list, tuple],
         e_hidden_layers: int,
         d_hidden_layers: int,
+        pe_vector=None,
+        beads_ids=[],
+        pe_vector_res_2_meta=None,
+        pe_vector_bead_2_res=None,
+        is_CG=False,
     ):
         super().__init__()
         if encoder_cls == "MLP":
@@ -130,7 +134,14 @@ class VAE(nn.Module):
         elif decoder_cls == "GNN_with_prior":
             self.decoder = EGNNDecoder(d_hidden_dim, d_hidden_layers)
         elif decoder_cls == "metaGNN":
-            self.decoder = HierarchicalDeltaGNN(in_dim = z_dim, d_hidden_dim = d_hidden_dim, latent_dim = latent_dim, sec_ids=sec_ids, meta_edge_index=meta_edge_index, 
+            if is_CG:
+                assert beads_ids != [], "beads_ids is required for bead-level model"
+                assert pe_vector_res_2_meta is not None and pe_vector_bead_2_res is not None, "pe_vector_res_2_meta and pe_vector_bead_2_res are required for bead-level model"
+                self.decoder = HierarchicalDeltaGNN_CG(in_dim = z_dim, d_hidden_dim = d_hidden_dim, latent_dim = latent_dim, sec_ids=sec_ids, beads_ids = beads_ids,meta_edge_index=meta_edge_index, 
+                                                edge_dist=edge_dist, pe_vector_res_2_meta = pe_vector_res_2_meta, pe_vector_bead_2_res = pe_vector_bead_2_res,meta_2_node_edge = meta_2_node_edge, meta_2_node_vector = meta_2_node_vector,out_dim=out_dim)
+            else:
+                assert pe_vector is not None, "pe_vector is required for residue-level model"
+                self.decoder = HierarchicalDeltaGNN(in_dim = z_dim, d_hidden_dim = d_hidden_dim, latent_dim = latent_dim, sec_ids=sec_ids, meta_edge_index=meta_edge_index, 
                                                 edge_dist=edge_dist, pe_vector = pe_vector,meta_2_node_edge = meta_2_node_edge, meta_2_node_vector = meta_2_node_vector,out_dim=out_dim)
         else:
             print(f"{decoder_cls} not in presets, you may set it manually later.")
@@ -148,3 +159,118 @@ class VAE(nn.Module):
     def eval_z(self, z):
         out = self.decoder(z)
         return out
+        
+# class VAE(nn.Module):
+
+#     def __init__(
+#         self,
+#         encoder_cls: str,
+#         decoder_cls: str,
+#         in_dim: int,
+#         out_dim: int,
+#         sec_ids: list,
+#         meta_edge_index: np.array,
+#         edge_dist:np.array,
+#         pe_vector:np.array,
+#         meta_2_node_edge:torch.tensor,
+#         meta_2_node_vector:torch.tensor,
+#         attention_layer:int,
+#         e_hidden_dim: Union[int, list, tuple],
+#         z_dim:int,
+#         latent_dim: int,
+#         d_hidden_dim:Union[int, list, tuple],
+#         e_hidden_layers: int,
+#         d_hidden_layers: int,
+#     ):
+#         super().__init__()
+#         if encoder_cls == "MLP":
+#             self.encoder = VAEEncoder(in_dim, e_hidden_dim, z_dim, e_hidden_layers)
+#         elif encoder_cls == "GAT":
+#             self.encoder = GATEncoder(in_dim, e_hidden_dim, attention_layer, z_dim, e_hidden_layers)
+#         elif encoder_cls == "MS-GAT":
+#             self.encoder = MultiScaleGATEncoder(in_dim, e_hidden_dim, attention_layer, z_dim, e_hidden_layers)
+#         else:
+#             raise Exception()
+#         if decoder_cls == "MLP":
+#             self.decoder = Decoder(z_dim, d_hidden_dim, out_dim, d_hidden_layers)
+#         elif decoder_cls == "GNN_with_prior":
+#             self.decoder = EGNNDecoder(d_hidden_dim, d_hidden_layers)
+#         elif decoder_cls == "metaGNN":
+#             self.decoder = HierarchicalDeltaGNN(in_dim = z_dim, d_hidden_dim = d_hidden_dim, latent_dim = latent_dim, sec_ids=sec_ids, meta_edge_index=meta_edge_index, 
+#                                                 edge_dist=edge_dist, pe_vector = pe_vector,meta_2_node_edge = meta_2_node_edge, meta_2_node_vector = meta_2_node_vector,out_dim=out_dim)
+#         else:
+#             print(f"{decoder_cls} not in presets, you may set it manually later.")
+#             self.decoder: torch.nn.Module
+
+#     def encode(self,x):
+#         mean = self.encoder(x)
+#         return mean
+
+#     def forward(self, img):
+#         z = self.encode(img)
+#         out = self.decoder(z)
+#         return out, z
+    
+#     def eval_z(self, z):
+#         out = self.decoder(z)
+#         return out
+
+# class VAE_CG(nn.Module):
+
+#     def __init__(
+#         self,
+#         encoder_cls: str,
+#         decoder_cls: str,
+#         in_dim: int,
+#         out_dim: int,
+#         sec_ids: list,
+#         beads_ids: list,
+#         meta_edge_index: np.array,
+#         edge_dist:np.array,
+#         pe_vector_res_2_meta:np.array,
+#         pe_vector_bead_2_res:np.array,
+#         meta_2_node_edge:torch.tensor,
+#         meta_2_node_vector:torch.tensor,
+#         attention_layer:int,
+#         e_hidden_dim: Union[int, list, tuple],
+#         z_dim:int,
+#         latent_dim: int,
+#         d_hidden_dim:Union[int, list, tuple],
+#         e_hidden_layers: int,
+#         d_hidden_layers: int,
+#     ):
+#         super().__init__()
+#         if encoder_cls == "MLP":
+#             self.encoder = VAEEncoder(in_dim, e_hidden_dim, z_dim, e_hidden_layers)
+#         elif encoder_cls == "GAT":
+#             self.encoder = GATEncoder(in_dim, e_hidden_dim, attention_layer, z_dim, e_hidden_layers)
+#         elif encoder_cls == "MS-GAT":
+#             self.encoder = MultiScaleGATEncoder(in_dim, e_hidden_dim, attention_layer, z_dim, e_hidden_layers)
+#         else:
+#             raise Exception()
+#         if decoder_cls == "MLP":
+#             self.decoder = Decoder(z_dim, d_hidden_dim, out_dim, d_hidden_layers)
+#         elif decoder_cls == "GNN_with_prior":
+#             self.decoder = EGNNDecoder(d_hidden_dim, d_hidden_layers)
+#         elif decoder_cls == "metaGNN":
+#             self.decoder = HierarchicalDeltaGNN_CG(in_dim = z_dim, d_hidden_dim = d_hidden_dim, latent_dim = latent_dim, sec_ids=sec_ids, beads_ids = beads_ids,meta_edge_index=meta_edge_index, 
+#                                                 edge_dist=edge_dist, pe_vector_res_2_meta = pe_vector_res_2_meta, pe_vector_bead_2_res = pe_vector_bead_2_res,meta_2_node_edge = meta_2_node_edge, meta_2_node_vector = meta_2_node_vector,out_dim=out_dim)
+#         elif decoder_cls == "metaGNN_old":
+#             self.decoder = HierarchicalDeltaGNN_old(in_dim = z_dim, d_hidden_dim = d_hidden_dim, latent_dim = latent_dim, sec_ids=sec_ids, meta_edge_index=meta_edge_index, 
+#                                                 edge_dist=edge_dist, pe_vector = pe_vector_res_2_meta, meta_2_node_edge = meta_2_node_edge, meta_2_node_vector = meta_2_node_vector,out_dim=out_dim)
+#         else:
+#             print(f"{decoder_cls} not in presets, you may set it manually later.")
+#             self.decoder: torch.nn.Module
+
+#     def encode(self,x):
+#         mean = self.encoder(x)
+#         return mean
+
+#     def forward(self, img):
+#         z = self.encode(img)
+#         out = self.decoder(z)
+#         return out, z
+    
+#     def eval_z(self, z):
+#         out = self.decoder(z)
+#         return out

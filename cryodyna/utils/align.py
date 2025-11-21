@@ -4,11 +4,35 @@ import torch
 import numpy as np
 import pickle
 from Bio import SeqIO
-from cryostar.openfold.utils.residue_constants import restype_3to1
 from Bio import Align
 from sklearn.mixture import GaussianMixture
 from scipy.stats import norm
 from scipy.optimize import fsolve
+
+restype_1to3 = {
+    'A': 'ALA',
+    'R': 'ARG',
+    'N': 'ASN',
+    'D': 'ASP',
+    'C': 'CYS',
+    'Q': 'GLN',
+    'E': 'GLU',
+    'G': 'GLY',
+    'H': 'HIS',
+    'I': 'ILE',
+    'L': 'LEU',
+    'K': 'LYS',
+    'M': 'MET',
+    'F': 'PHE',
+    'P': 'PRO',
+    'S': 'SER',
+    'T': 'THR',
+    'W': 'TRP',
+    'Y': 'TYR',
+    'V': 'VAL',
+}
+
+restype_3to1 = {v: k for k, v in restype_1to3.items()}
 
 def get_rmsd_loss(true_protein, pred_CA, L=None, include_L=True, copies=1):
   B = pred_CA.size()[0]

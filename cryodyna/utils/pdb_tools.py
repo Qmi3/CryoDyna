@@ -590,6 +590,42 @@ SS8_TO_SS3 = {
     'E': 'E', 'B': 'E',
     'S': 'C', 'T': 'C', '-': 'C', 'C': 'C'
 }
+SS10_TO_SS4 = {
+    '1': 'H', '2': 'H', '3': 'H','H': 'H',
+    'E': 'E', 
+    'S': 'T', 'T': 'T',
+    'C': 'C', 'F': 'C',
+    'N':'N'
+}
+
+def extract_sec_ids_merge_small_blocks_CG(ss_per_chain, min_block_len=3):
+    block_id = -1
+    sec_ids_list = []
+    for ss_chain in ss_per_chain:
+        ss_labels = []
+        for ss_res in ss_chain:
+            ss_labels.append(SS10_TO_SS4[ss_res])
+        sec_ids_tmp = [None] * len(ss_labels)
+        i = 0
+        tmp_block_id = 0
+        while i < len(ss_labels):
+            current_ss = ss_labels[i]
+            j = i
+            while j < len(ss_labels) and ss_labels[j] == current_ss:
+                j += 1
+            length = j - i
+            
+            if length < min_block_len and block_id >= 0 and tmp_block_id != 0:
+                # merge 到前一个 block
+                sec_ids_tmp[i:j] = [block_id] * length
+            else:
+                block_id += 1
+                tmp_block_id +=1
+                sec_ids_tmp[i:j] = [block_id] * length
+            i = j
+        for m in range(len(ss_labels)):
+            sec_ids_list.append(sec_ids_tmp.pop(0))
+    return sec_ids_list
 
 def extract_sec_ids_merge_small_blocks(pdb_file, dssp_exec='mkdssp', min_block_len=3):
     parser = PDBParser(QUIET=True)
@@ -898,7 +934,7 @@ def get_kplus_neighbor_metanodes(node_coords, segment_ids, metanode_coords):
     edge_vector = []
 
     for i in range(N):
-        sid = segment_ids[i].item()
+        sid = segment_ids[i]
         top_idx = top4_idx[i].tolist()
 
         neighbor_idx = []

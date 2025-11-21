@@ -53,9 +53,20 @@ atom_xxxxx/
 #### Stage2: Training the bead-level deformation field
 In this step, we generate an ensemble of molecule structures from the particles with 1-6 beads representing each residue.
 
+During the training of CryoDyna-CG, the model requires a MARTINI coarse-grained structural prior.
+You may directly provide an all-atom structure, and CryoDyna-CG will automatically perform the coarse-graining.
+
+**Optionally**, you may provide a MARTINI-coarse-grained structure that has already been energy-minimized, which can help the structural regularization converge more quickly during the early training stage.
+
+Using 1ake as an example:
+First, run ``` ./martinize_struct_prior.sh ``` in a Python 2 environment to generate the coarse-grained mapping from the all-atom structure.
+Then, run ```./minimize_struct_prior.sh``` to perform energy minimization (this step requires that the user has GROMACS installed).
+
+After that, run
+
 ```shell
 cd projects
-python train_atom.py cg_configs/1ake.py
+python train_cg.py cg_configs/1ake.py
 ```
 
 The outputs will be stored in the `work_dirs/atom_xxxxx` directory, and we perform evaluations every 12,000 steps. Within this directory, you'll observe sub-directories with the name `epoch-number_step-number`. We choose the most recent directory as the final results.
@@ -78,6 +89,9 @@ atom_xxxxx/
 ├── config.py            # a backup of the config file
 └── train_atom.py        # a backup of the training script
 ```
+
+After generating the bead-level structure, you may use a backmapping method to obtain the full-atom structure.
+In our work, we use [CG2AT2 + Backward](https://github.com/PepperLee-sm/CG2AT2-Backward.git) for the backmapping procedure.
 
 ### Validation: Training the density generator
 

@@ -117,13 +117,16 @@ def pdbFrameIterator(streamIterator):
 
 def pdbFrame(streamIterator):
     # Update by Shimian
-    atoms = []
+    title, atoms, box = [], [], []
     for i in streamIterator:
-        if i.startswith("ATOM") or i.startswith("HETATM"):
+        if i.startswith("TITLE"):
+            title.append(i)
+        elif i.startswith("CRYST1"):
+            box = pdbBoxRead(i)
+        elif i.startswith("ATOM") or i.startswith("HETATM"):
             atoms.append(pdbAtom(i))
     if atoms:
-        return atoms
-        # yield atoms
+        return "".join(title), atoms, box
 
 #----+---------+
 ## B | GRO I/O |
@@ -291,7 +294,7 @@ def residueDistance2(r1, r2):
     return min([FUNC.distance2(i, j) for i in r1 for j in r2])
 
 
-def breaks(residuelist, selection=("N", "CA", "C"), cutoff=2.5):
+def breaks_protein(residuelist, selection=("N", "CA", "C"), cutoff=2.5):
     # Extract backbone atoms coordinates
     bb = [[atom[4:] for atom in residue if atom[0] in selection] for residue in residuelist]
     # Needed to remove waters residues from mixed residues.
@@ -301,6 +304,20 @@ def breaks(residuelist, selection=("N", "CA", "C"), cutoff=2.5):
     # Therefore breaks are inferred from the minimal distance between
     # backbone atoms from adjacent residues.
     return [i+1 for i in range(len(bb)-1) if residueDistance2(bb[i], bb[i+1]) > cutoff]
+
+# CUT-OFF_CHANGE
+# Increased the cut-off from 2.5 to 3.0 for DNA. Might have to be adjusted for other DNA structures.
+# Not guaranteed to work for proteins, recommended to use the regular martinize for them. 
+def breaks(residuelist,selection=("N","CA","C","P","C2'","C3'","O3'","C4'","C5'","O5'", "OP1", "OP2"),cutoff=3.0):
+    # Extract backbone atoms coordinates
+    bb = [[atom[4:] for atom in residue if atom[0] in selection] for residue in residuelist]
+    # Needed to remove waters residues from mixed residues.
+    bb = [res for res in bb if res != []]
+
+    # We cannot rely on some standard order for the backbone atoms.
+    # Therefore breaks are inferred from the minimal distance between
+    # backbone atoms from adjacent residues.
+    return [ i+1 for i in range(len(bb)-1) if residueDistance2(bb[i],bb[i+1]) > cutoff]
 
 
 def contacts(atoms, cutoff=5):
@@ -442,6 +459,7 @@ class Chain:
         self.residues   = residuelist # [[('N', 'MET', 33554433, 'B', 30.094, -7.121, 24.234)]]
         self._atoms     = [atom[:3] for residue in residuelist for atom in residue]
         self.sequence   = [residue[0][1] for residue in residuelist]
+        self.residue_id = [residue[0][2]-(residue[0][2]>>20<<20) for residue in self.residues]
         # *NOTE*: Check for unknown residues and remove them if requested
         #         before proceeding.
         self.seq        = "".join([MAP.AA321.get(i, "X") for i in self.sequence])
@@ -465,7 +483,12 @@ class Chain:
         # BREAKS: List of indices of residues where a new fragment starts
         # Only when polymeric (protein, DNA, RNA, ...)
         # For now, let's remove it for the Nucleic acids...
-        self.breaks     = self.type() in ("Protein", "Mixed") and breaks(self.residues) or []
+        # self.breaks     = self.type() in ("Protein", "Mixed") and breaks(self.residues) or []
+
+        if self.type() in ("Protein"):
+            self.breaks     = breaks_protein(self.residues) or []
+        else:
+            self.breaks     = breaks(self.residues) or []
 
         # LINKS:  List of pairs of pairs of indices of linked residues/atoms
         # This list is used for cysteine bridges and peptide bonds involving side chains
@@ -625,7 +648,9 @@ class Chain:
         if self.type() == "Protein":
             if method:
                 atomlist = [atom for residue in self.residues for atom in residue]
-                self.set_ss(SS.ssDetermination[method](self, atomlist, executable), source=method)
+                ss, resids = SS.ssDetermination[method](self, atomlist, executable)
+                ss = ''.join([ss[resids.index(i)] if i in resids else "C" for i in self.residue_id])
+                self.set_ss(ss, source=method)
             else:
                 self.set_ss(len(self)*"C")
         else:
@@ -652,7 +677,7 @@ class Chain:
             return self._cg
         self._cg = []
         electrons = []
-        sizes = []
+        # sizes = []
         atid     = 1
         # bb       = [1]
         fail     = False
@@ -693,9 +718,10 @@ class Chain:
             for i in residue:
                 if i[0][0] != "H":
                     residue_heavy.append(i)
-            beads, electron, size, ids = MAP.map(residue_heavy)
+            # beads, electron, size, ids = MAP.map(residue_heavy)
+            beads, electron, ids = MAP.map(residue_heavy)
             electrons += [i[0] for i in electron]
-            sizes += [i[0] for i in size]
+            # sizes += [i[0] for i in size]
                 # beads, ids = MAP.map(residue, ca2bb=self.options['ForceField'].ca2bb)
             beads      = zip(MAP.CoarseGrained.names[residue[0][1]], beads, ids)
                 # if residue[0][1] in self.options['ForceField'].polar:
@@ -724,7 +750,7 @@ class Chain:
             logging.error("Unable to generate coarse grained structure due to missing atoms.")
             sys.exit(1)
 
-        return self._cg, electrons, sizes
+        return self._cg, electrons
 
     def conect(self):
         # Return pairs of numbers that should be CONECTed

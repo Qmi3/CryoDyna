@@ -1,0 +1,13 @@
+#include "martini_v2.1-dna.itp"
+    
+
+  
+#include "Protein_A.itp"
+    
+[ system ]
+; name
+Martini system from projects/struct_prior/1akeA_50/1akeA_50.pdb
+    
+[ molecules ]
+; name        number
+Protein_A 	 1
