@@ -4,8 +4,8 @@ dataset_attr = dict(
     starfile_path="/lustre/grp/gyqlab/share/cryoem_particles/tutorial_data_1ake/uniform_snr0-0001_ctf/simulation.star",
     apix=1.0,
     side_shape=128,
-    ref_pdb_path="/lustre/grp/gyqlab/share/cryoem_particles/tutorial_data_1ake/pdbs/1akeA_50.pdb",
-    ref_cg_pdb_path="/lustre/grp/gyqlab/lism/cryostar/martini_test/1ake/MIN/min.pdb",
+    ref_pdb_path="/lustre/grp/gyqlab/lism/CryoDyna/projects/struct_prior/1akeA_50/1akeA_50.pdb",
+    ref_cg_pdb_path="/lustre/grp/gyqlab/lism/CryoDyna/projects/struct_prior/1akeA_50/MIN/min.pdb",
 )
 
 cg_attr = dict(

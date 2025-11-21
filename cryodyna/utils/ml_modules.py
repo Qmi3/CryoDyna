@@ -262,7 +262,6 @@ class MultiScaleGATEncoder(nn.Module):
     def forward(self, x):
         x = self.mlp1(x)
         img_img_idx= complete_graph(x.shape[0],x.device)
-        # import pdb;pdb.set_trace()
         for it, attn_layer in enumerate(self.attn_layers):
             attn_layer = attn_layer.to(x.device)
             # pre_norm = self.pre_norm[it].to(x.device)
@@ -403,7 +402,6 @@ class E_GCL(nn.Module):
         if edge_attr is None:  # Unused.
             out = torch.cat([source, target, radial], dim=1)
         else:
-            # import pdb;pdb.set_trace()
             out = torch.cat([source, target, radial, edge_attr], dim=1)
         out = self.edge_mlp(out)
         if self.attention:
@@ -433,7 +431,6 @@ class E_GCL(nn.Module):
         else:
             raise Exception('Wrong coords_agg parameter' % self.coords_agg)
         coord += 0.2 * agg
-        # import pdb;pdb.set_trace()
         coord += self.h_mlp(hidden)
         return coord
 
@@ -781,7 +778,6 @@ class DistanceAwareMPNN(MessagePassing):
     def message(self, x_i, x_j, pos_i, pos_j, edge_attr):
         rel_pos = pos_j - pos_i
         dist = torch.norm(rel_pos, dim=-1, keepdim=True)
-        # import pdb;pdb.set_trace()
         edge_input = torch.cat([x_i, x_j, edge_attr.unsqueeze(-1), dist], dim=-1)
         e_ij = self.edge_mlp(edge_input)
         return torch.cat([e_ij, rel_pos], dim=-1)
@@ -907,8 +903,7 @@ def expand_batch(batch_size, node_idx, meta_edge_idx, edge_dist, meta_2_node_edg
 
     batch_node_idx = node_idx.unsqueeze(0) + node_offsets.unsqueeze(1)
     batch_node_idx = batch_node_idx.reshape(-1)
-
-    batch_meta_edge_idx = meta_edge_idx.unsqueeze(0) + node_offsets.unsqueeze(1)
+    batch_meta_edge_idx = meta_edge_idx.unsqueeze(1) + node_offsets.view(1, batch_size, 1)
     batch_meta_edge_idx = batch_meta_edge_idx.reshape(2, -1)
 
     batch_edge_dist = edge_dist.repeat(batch_size)
@@ -991,7 +986,7 @@ def expand_batch(batch_size, node_idx, meta_edge_idx, edge_dist, meta_2_node_edg
 #     batch_edge_dist = edge_dist.repeat(batch_size)
 #     batch_meta_2_node_idx = torch.cat(batch_meta_2_node_idx, dim=1)  # [2, E_total]
 #     batch_meta_2_node_vector = torch.cat(batch_meta_2_node_vector, dim=0) 
-#     return batch_node_idx,batch_beads_idx, batch_meta_edge_idx,batch_edge_dist,batch_meta_2_node_idx,batch_meta_2_node_vector
+#     return batch_node_idx,batch_beads_idx, batch_meta_edge_idx, batch_edge_dist,batch_meta_2_node_idx,batch_meta_2_node_vector
 
 class GatedMetaFusion(nn.Module):
     def __init__(self, dim):
@@ -1138,7 +1133,6 @@ class HierarchicalDeltaGNN_CG(nn.Module):
         B = x.shape[0]
         x = self.mapping_mlp(x)
         batch_sec_idx, batch_beads_idx, batch_meta_edge_idx, batch_edge_dist, batch_meta_2_node_idx, batch_meta_2_node_vector = expand_batch(B, self.sec_ids, self.meta_edge_index, self.edge_dist, self.meta_2_node_edge, self.meta_2_node_vector, self.beads_ids)
-
         x = x.reshape(B * self.point_num, -1)
         batch_pe_vector_res_2_meta = self.pe_vector_res_2_meta.repeat(B, 1)
         batch_pe_vector_bead_2_res = self.pe_vector_bead_2_res.repeat(B, 1)
