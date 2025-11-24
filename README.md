@@ -21,7 +21,7 @@ You may need to prepare the resources below before running `CryoDyna`:
 ### Training
 CryoDyna predicts conformational heterogeneity in two distinct level(residue-level and bead-level). Here's an illustration of its process:
 
-#### Training the residue-level deformation field
+#### Stage1 Training the residue-level deformation field
 In this step, we generate an ensemble of molecule structures from the particles with Ca/P atom representing each residue. Note that the `pdb` file is used in this step and it should be docked into the concensus map!
 
 ```shell
