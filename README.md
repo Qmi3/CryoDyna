@@ -29,7 +29,7 @@ cd projects
 python train_atom.py atom_configs/1ake.py
 ```
 
-The outputs will be stored in the `work_dirs/atom_xxxxx` directory, and we perform evaluations every 12,000 steps. Within this directory, you'll observe sub-directories with the name `epoch-number_step-number`. We choose the most recent directory as the final results.
+The outputs will be stored in the `work_dirs/atom_xxxxx` directory. Within this directory, you'll observe sub-directories with the name `epoch-number_step-number`. We choose the most recent directory as the final results.
 
 ```text
 atom_xxxxx/
