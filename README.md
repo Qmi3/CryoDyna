@@ -1,8 +1,8 @@
 ## CryoDyna: Multiscale end-to-end modeling of cryo-EM macromolecule dynamics with physics-aware neural network
-[📚 User Guide](https://app.gitbook.com/o/QFu6i32VUAgB6PYL2Kra/s/WwguWEH6nay36rcIutEl/))
+[📚 User Guide](https://stu-pku-edu-cn.gitbook.io/stu.pku.edu.cn-docs/)
 
 ## User Guide
-The detailed user guide can be found at [here](https://byte-research.gitbook.io/cryostar/). This comprehensive guide provides in-depth information about the topic at hand. Feel free to visit the link if you're seeking more knowledge or need extensive instructions regarding the topic. 
+The detailed user guide can be found at (https://stu-pku-edu-cn.gitbook.io/stu.pku.edu.cn-docs/). This comprehensive guide provides in-depth information about the topic at hand. Feel free to visit the link if you're seeking more knowledge or need extensive instructions regarding the topic. 
 
 ## Installation
 
