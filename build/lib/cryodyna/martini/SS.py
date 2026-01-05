@@ -165,15 +165,20 @@ def call_dssp(chain, atomlist, executable='dsspcmbi'):
 
     for atom in atomlist:
         if atom[0][:2] == 'O1': atom = ('O',)+atom[1:]
-        if atom[0][0] != 'H' and atom[0][:2] != 'O2': p.stdin.write(IO.pdbOut(atom))
-    p.stdin.write('TER\n')
+        if atom[0][0] != 'H' and atom[0][:2] != 'O2': 
+            p.stdin.write(IO.pdbOut(atom).encode())
+    p.stdin.write('TER\n'.encode())
     data = p.communicate()
     p.wait()
     main, ss = 0, ''
+    resids = []
     for line in open(ssdfile).readlines():
-        if main and not line[13] == "!": ss += line[16]
+        if main and not line[13] == "!": 
+            ss += line[16]
+            resids.append(int(line[5:10])) 
         if line[:15] == '  #  RESIDUE AA': main = 1
-    return ss
+    os.remove(ssdfile)
+    return ss, resids
 
 ssDetermination = {
     "dssp": call_dssp

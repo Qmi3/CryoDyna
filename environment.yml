@@ -1,0 +1,7 @@
+name: cryodyna
+channels:
+  - conda-forge
+  - schrodinger
+dependencies:
+  - python=3.9
+  - pymol
