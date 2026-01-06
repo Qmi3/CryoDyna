@@ -262,7 +262,6 @@ class MultiScaleGATEncoder(nn.Module):
     def forward(self, x):
         x = self.mlp1(x)
         img_img_idx= complete_graph(x.shape[0],x.device)
-        # import pdb;pdb.set_trace()
         for it, attn_layer in enumerate(self.attn_layers):
             attn_layer = attn_layer.to(x.device)
             # pre_norm = self.pre_norm[it].to(x.device)
@@ -403,7 +402,6 @@ class E_GCL(nn.Module):
         if edge_attr is None:  # Unused.
             out = torch.cat([source, target, radial], dim=1)
         else:
-            # import pdb;pdb.set_trace()
             out = torch.cat([source, target, radial, edge_attr], dim=1)
         out = self.edge_mlp(out)
         if self.attention:
@@ -433,7 +431,6 @@ class E_GCL(nn.Module):
         else:
             raise Exception('Wrong coords_agg parameter' % self.coords_agg)
         coord += 0.2 * agg
-        # import pdb;pdb.set_trace()
         coord += self.h_mlp(hidden)
         return coord
 
@@ -781,7 +778,6 @@ class DistanceAwareMPNN(MessagePassing):
     def message(self, x_i, x_j, pos_i, pos_j, edge_attr):
         rel_pos = pos_j - pos_i
         dist = torch.norm(rel_pos, dim=-1, keepdim=True)
-        # import pdb;pdb.set_trace()
         edge_input = torch.cat([x_i, x_j, edge_attr.unsqueeze(-1), dist], dim=-1)
         e_ij = self.edge_mlp(edge_input)
         return torch.cat([e_ij, rel_pos], dim=-1)
@@ -895,30 +891,102 @@ class HierarchicalProteinGNN(nn.Module):
 from torch_scatter import scatter_mean
 from torch_geometric.nn import GATv2Conv
 
-def expand_batch(batch_size, node_idx, meta_edge_idx, edge_dist, meta_2_node_edge, meta_2_node_vector):
-    batch_node_idx = []
-    batch_meta_edge_idx = []
-    batch_meta_2_node_idx = []
-    batch_meta_2_node_vector = []
-    for i in range(batch_size):
-        shifted_idx = node_idx + i * (torch.max(node_idx)+1)
-        edge_idx_shifted = meta_edge_idx + i * (torch.max(node_idx)+1)
-        batch_node_idx.append(shifted_idx)
-        batch_meta_edge_idx.append(edge_idx_shifted)
-        node_offset = i * (torch.max(meta_2_node_edge[1])+1)
-        meta_offset = i * (torch.max(node_idx)+1)   # <-- global metanode offset
-        ei = meta_2_node_edge.clone()
-        ei[0] += meta_offset  # metanode idx
-        ei[1] += node_offset  # node idx
-        batch_meta_2_node_idx.append(ei)
-        batch_meta_2_node_vector.append(meta_2_node_vector)
-    batch_node_idx = torch.cat(batch_node_idx)
-    batch_meta_edge_idx = torch.cat(batch_meta_edge_idx, dim=1)
-    batch_edge_dist = edge_dist.repeat(batch_size)
-    batch_meta_2_node_idx = torch.cat(batch_meta_2_node_idx, dim=1)  # [2, E_total]
-    batch_meta_2_node_vector = torch.cat(batch_meta_2_node_vector, dim=0) 
-    return batch_node_idx,batch_meta_edge_idx,batch_edge_dist,batch_meta_2_node_idx,batch_meta_2_node_vector
+def expand_batch(batch_size, node_idx, meta_edge_idx, edge_dist, meta_2_node_edge, meta_2_node_vector, beads_ids=None):
+    device = node_idx.device
 
+    max_node = node_idx.max().item() + 1
+    max_meta2node_node = meta_2_node_edge[1].max().item() + 1
+
+    node_offsets = torch.arange(batch_size, device=device) * max_node
+    meta_offsets = node_offsets.clone()
+    node2_offsets = torch.arange(batch_size, device=device) * max_meta2node_node
+
+    batch_node_idx = node_idx.unsqueeze(0) + node_offsets.unsqueeze(1)
+    batch_node_idx = batch_node_idx.reshape(-1)
+    batch_meta_edge_idx = meta_edge_idx.unsqueeze(1) + node_offsets.view(1, batch_size, 1)
+    batch_meta_edge_idx = batch_meta_edge_idx.reshape(2, -1)
+
+    batch_edge_dist = edge_dist.repeat(batch_size)
+
+    ei0 = meta_2_node_edge[0].unsqueeze(0) + meta_offsets.unsqueeze(1)
+    ei1 = meta_2_node_edge[1].unsqueeze(0) + node2_offsets.unsqueeze(1)
+
+    batch_meta_2_node_idx = torch.stack([
+        ei0.reshape(-1),
+        ei1.reshape(-1)
+    ], dim=0)
+
+    batch_meta_2_node_vector = meta_2_node_vector.repeat(batch_size, 1)
+
+    if beads_ids is not None:
+        max_beads = beads_ids.max().item() + 1
+        beads_offsets = torch.arange(batch_size, device=device) * max_beads
+        batch_beads_idx = beads_ids.unsqueeze(0) + beads_offsets.unsqueeze(1)
+        batch_beads_idx = batch_beads_idx.reshape(-1)
+
+        return (batch_node_idx,
+                batch_beads_idx,
+                batch_meta_edge_idx,
+                batch_edge_dist,
+                batch_meta_2_node_idx,
+                batch_meta_2_node_vector)
+    else:
+        return (batch_node_idx,
+                batch_meta_edge_idx,
+                batch_edge_dist,
+                batch_meta_2_node_idx,
+                batch_meta_2_node_vector)
+    
+# def expand_batch(batch_size, node_idx, meta_edge_idx, edge_dist, meta_2_node_edge, meta_2_node_vector):
+#     batch_node_idx = []
+#     batch_meta_edge_idx = []
+#     batch_meta_2_node_idx = []
+#     batch_meta_2_node_vector = []
+#     for i in range(batch_size):
+#         shifted_idx = node_idx + i * (torch.max(node_idx)+1)
+#         edge_idx_shifted = meta_edge_idx + i * (torch.max(node_idx)+1)
+#         batch_node_idx.append(shifted_idx)
+#         batch_meta_edge_idx.append(edge_idx_shifted)
+#         node_offset = i * (torch.max(meta_2_node_edge[1])+1)
+#         meta_offset = i * (torch.max(node_idx)+1)   # <-- global metanode offset
+#         ei = meta_2_node_edge.clone()
+#         ei[0] += meta_offset  # metanode idx
+#         ei[1] += node_offset  # node idx
+#         batch_meta_2_node_idx.append(ei)
+#         batch_meta_2_node_vector.append(meta_2_node_vector)
+#     batch_node_idx = torch.cat(batch_node_idx)
+#     batch_meta_edge_idx = torch.cat(batch_meta_edge_idx, dim=1)
+#     batch_edge_dist = edge_dist.repeat(batch_size)
+#     batch_meta_2_node_idx = torch.cat(batch_meta_2_node_idx, dim=1)  # [2, E_total]
+#     batch_meta_2_node_vector = torch.cat(batch_meta_2_node_vector, dim=0) 
+#     return batch_node_idx,batch_meta_edge_idx,batch_edge_dist,batch_meta_2_node_idx,batch_meta_2_node_vector
+
+# def expand_batch_CG(batch_size, node_idx, beads_ids, meta_edge_idx, edge_dist, meta_2_node_edge, meta_2_node_vector):
+#     batch_node_idx = []
+#     batch_beads_idx = []
+#     batch_meta_edge_idx = []
+#     batch_meta_2_node_idx = []
+#     batch_meta_2_node_vector = []
+#     for i in range(batch_size):
+#         shifted_idx = node_idx + i * (torch.max(node_idx)+1)
+#         edge_idx_shifted = meta_edge_idx + i * (torch.max(node_idx)+1)
+#         batch_node_idx.append(shifted_idx)
+#         batch_beads_idx.append(beads_ids + i * (torch.max(beads_ids)+1))
+#         batch_meta_edge_idx.append(edge_idx_shifted)
+#         node_offset = i * (torch.max(meta_2_node_edge[1])+1)
+#         meta_offset = i * (torch.max(node_idx)+1)   # <-- global metanode offset
+#         ei = meta_2_node_edge.clone()
+#         ei[0] += meta_offset  # metanode idx
+#         ei[1] += node_offset  # node idx
+#         batch_meta_2_node_idx.append(ei)
+#         batch_meta_2_node_vector.append(meta_2_node_vector)
+#     batch_node_idx = torch.cat(batch_node_idx)
+#     batch_beads_idx = torch.cat(batch_beads_idx)
+#     batch_meta_edge_idx = torch.cat(batch_meta_edge_idx, dim=1)
+#     batch_edge_dist = edge_dist.repeat(batch_size)
+#     batch_meta_2_node_idx = torch.cat(batch_meta_2_node_idx, dim=1)  # [2, E_total]
+#     batch_meta_2_node_vector = torch.cat(batch_meta_2_node_vector, dim=0) 
+#     return batch_node_idx,batch_beads_idx, batch_meta_edge_idx, batch_edge_dist,batch_meta_2_node_idx,batch_meta_2_node_vector
 
 class GatedMetaFusion(nn.Module):
     def __init__(self, dim):
@@ -951,39 +1019,48 @@ class GatedMetaFusion(nn.Module):
         gated2_input = torch.cat([res_broadcast, meta_add_broadcast, batch_meta_2_node_vector], dim=-1)  # [E, 2C+3+1]
         gate2_weight = self.gate2(gated2_input)  # [E, 1]
         meta_add_fea = gate2_weight * meta_add_broadcast
-        # import pdb;pdb.set_trace()
         meta_add_fea = scatter_mean(meta_add_fea, batch_meta_2_node_edge[1], dim=0)
-        # import pdb;pdb.set_trace()
         fused = res_feat + gate1_weight * meta_broadcast + meta_add_fea
         return self.fuse(fused)
         # return self.fuse(torch.cat((fused,-1*batch_pe_vector),dim=-1))
-    
+
+class GatedBeadFusion(nn.Module):
+    def __init__(self, dim):
+        super().__init__()
+        self.gate1 = nn.Sequential(
+            nn.Linear(2 * dim +3 , dim),
+            nn.ELU(),
+            nn.Linear(dim, dim),
+            # nn.Sigmoid()
+        )
+        
+        self.fuse = nn.Sequential(
+            nn.Linear(dim , dim),
+            nn.ELU(),
+            nn.Linear(dim, dim),
+            # nn.Sigmoid()
+        )
+
+    def forward(self, bead_feat, res_feat, beads_ids, batch_pe_vector_bead_2_res):
+        # broadcast current meta
+        res_broadcast = res_feat[beads_ids]  
+        gate1_input = torch.cat([bead_feat, res_broadcast, -1* batch_pe_vector_bead_2_res], dim=-1)
+        gate1_weight = self.gate1(gate1_input)  # (N, 1)
+        fused = bead_feat + gate1_weight * res_broadcast
+        return self.fuse(fused)
+
 class HierarchicalDeltaGNN(nn.Module):
     def __init__(self, in_dim, d_hidden_dim, latent_dim, sec_ids, meta_edge_index, edge_dist, pe_vector, meta_2_node_edge, meta_2_node_vector,out_dim):
         super().__init__()
-        # self.mapping_mlp = Linear(in_dim, out_dim //3 * latent_dim)
-        self.mapping_mlp = nn.Linear(in_dim, out_dim //3 * latent_dim)
-        # self.norm1 = nn.LayerNorm(latent_dim)
-        # self.mapping_mlp = MLP(np.concatenate(([in_dim],d_hidden_dim)), np.concatenate((d_hidden_dim,[out_dim //3 * latent_dim])))
-        self.mlp1 = nn.Sequential(Linear(latent_dim + 3, latent_dim),nn.ELU(),Linear(latent_dim, latent_dim))
-        # self.norm2 = nn.LayerNorm(latent_dim)
-        self.meta_gnn1 = GATv2Conv(latent_dim, latent_dim, edge_dim=1,heads=4, concat=False)
-        # self.norm3 = nn.LayerNorm(latent_dim)
-        self.fusion1 = GatedMetaFusion(latent_dim)
-        # self.norm4 = nn.LayerNorm(latent_dim)
-        self.mlp2 = nn.Sequential(Linear(latent_dim + 3, latent_dim),nn.ELU(),Linear(latent_dim, latent_dim))
-        self.meta_gnn2 = GATv2Conv(latent_dim, latent_dim, edge_dim=1,heads=4, concat=False)
-        self.fusion2 = GatedMetaFusion(latent_dim)
-        # self.mlp3 = Linear(latent_dim, latent_dim)
-        # self.meta_gnn3 = GATv2Conv(latent_dim, latent_dim, edge_dim=1,heads=4, concat=False)
-        # self.fusion3 = GatedMetaFusion(latent_dim)
-        self.sec_ids = sec_ids
-        self.meta_edge_index = meta_edge_index
-        self.edge_dist = edge_dist
-        self.pe_vector = pe_vector
-        self.meta_2_node_edge = meta_2_node_edge
-        self.meta_2_node_vector = meta_2_node_vector
         self.point_num = out_dim // 3
+        self.mapping_mlp = nn.Linear(in_dim, self.point_num * latent_dim)
+        self.mlp1 = nn.Sequential(nn.Linear(latent_dim + 3, latent_dim),nn.ELU(),nn.Linear(latent_dim, latent_dim))
+        self.meta_gnn1 = GATv2Conv(latent_dim, latent_dim, edge_dim=1, heads=4, concat=False)
+        self.fusion1 = GatedMetaFusion(latent_dim)
+        self.mlp2 = nn.Sequential(nn.Linear(latent_dim + 3, latent_dim),nn.ELU(),nn.Linear(latent_dim, latent_dim))
+        self.meta_gnn2 = GATv2Conv(latent_dim, latent_dim, edge_dim=1, heads=4, concat=False)
+        self.fusion2 = GatedMetaFusion(latent_dim)
+        
         self.coord_head = nn.Sequential(
             nn.Linear(latent_dim, latent_dim),
             nn.ELU(),
@@ -993,30 +1070,214 @@ class HierarchicalDeltaGNN(nn.Module):
             nn.ELU(),
             nn.Linear(latent_dim, 3)
         )
+        self.register_buffer("sec_ids", sec_ids)
+        self.register_buffer("meta_edge_index", meta_edge_index)
+        self.register_buffer("edge_dist", edge_dist)
+        self.register_buffer("pe_vector", pe_vector)
+        self.register_buffer("meta_2_node_edge", meta_2_node_edge)
+        self.register_buffer("meta_2_node_vector", meta_2_node_vector)
 
     def forward(self, x):
         B = x.shape[0]
         x = self.mapping_mlp(x)
-        batch_sec_idx,batch_meta_edge_idx,batch_edge_dist,batch_meta_2_node_idx,batch_meta_2_node_vector = expand_batch(B, self.sec_ids, self.meta_edge_index,self.edge_dist,self.meta_2_node_edge,self.meta_2_node_vector)
-        batch_sec_idx, batch_meta_edge_idx, batch_edge_dist,batch_meta_2_node_idx,batch_meta_2_node_vector = batch_sec_idx.to(x.device), batch_meta_edge_idx.to(x.device), batch_edge_dist.to(x.device),batch_meta_2_node_idx.to(x.device),batch_meta_2_node_vector.to(x.device)
-        # import pdb;pdb.set_trace()
         x = x.reshape(B * self.point_num, -1)
-        # x = self.norm1(x)
-        batch_pe_vector = self.pe_vector.repeat(B,1).to(x.device)
-        x = self.mlp1(torch.cat((x,batch_pe_vector),dim=-1))
+
+        batch_sec_idx, batch_meta_edge_idx, batch_edge_dist, batch_meta_2_node_idx, batch_meta_2_node_vector = expand_batch(B, self.sec_ids, self.meta_edge_index, self.edge_dist, self.meta_2_node_edge, self.meta_2_node_vector)
+
+        batch_pe_vector = self.pe_vector.repeat(B, 1)
+        x = self.mlp1(torch.cat((x,batch_pe_vector), dim=-1))
         meta_x = scatter_mean(x, batch_sec_idx, dim=0)
-        # meta_x = self.norm2(meta_x)
-        meta_x = self.meta_gnn1(meta_x, batch_meta_edge_idx, edge_attr= batch_edge_dist)
-        x_fused = self.fusion1(x, meta_x, batch_sec_idx,batch_pe_vector,batch_meta_2_node_idx,batch_meta_2_node_vector)
-        # x_fused  = self.norm3(x_fused)
-        x = self.mlp2(torch.cat((x_fused,batch_pe_vector),dim=-1))
+        meta_x = self.meta_gnn1(meta_x, batch_meta_edge_idx, edge_attr=batch_edge_dist)
+        x_fused = self.fusion1(x, meta_x, batch_sec_idx,batch_pe_vector, batch_meta_2_node_idx,batch_meta_2_node_vector)
+        x = self.mlp2(torch.cat((x_fused, batch_pe_vector),dim=-1))
         meta_x = scatter_mean(x, batch_sec_idx, dim=0)
-        # meta_x = self.norm4(meta_x)
-        meta_x = self.meta_gnn2(meta_x, batch_meta_edge_idx, edge_attr= batch_edge_dist)
-        x_fused = self.fusion2(x, meta_x, batch_sec_idx,batch_pe_vector,batch_meta_2_node_idx,batch_meta_2_node_vector)
-        # x = self.mlp3(x_fused)
-        # meta_x = scatter_mean(x, batch_sec_idx, dim=0)
-        # meta_x = self.meta_gnn3(meta_x, batch_meta_edge_idx, edge_attr= batch_edge_dist)
-        # x_fused = self.fusion3(x, meta_x, batch_sec_idx)
-        delta_pos = self.coord_head(x_fused).reshape(B,-1)
+        meta_x = self.meta_gnn2(meta_x, batch_meta_edge_idx, edge_attr=batch_edge_dist)
+        x_fused = self.fusion2(x, meta_x, batch_sec_idx, batch_pe_vector, batch_meta_2_node_idx,batch_meta_2_node_vector)
+        delta_pos = self.coord_head(x_fused).reshape(B, -1)
         return delta_pos
+
+class HierarchicalDeltaGNN_CG(nn.Module):
+    def __init__(self, in_dim, d_hidden_dim, latent_dim, sec_ids, beads_ids, meta_edge_index, edge_dist, pe_vector_res_2_meta, pe_vector_bead_2_res, meta_2_node_edge, meta_2_node_vector,out_dim):
+        super().__init__()
+        self.point_num = out_dim // 3
+        self.mapping_mlp = nn.Linear(in_dim, self.point_num * latent_dim)
+        self.bead_2_res_mlp1 = nn.Sequential(nn.Linear(latent_dim + 3, latent_dim), nn.ELU(), nn.Linear(latent_dim, latent_dim))
+        self.bead_2_res_mlp2 = nn.Sequential(nn.Linear(latent_dim + 3, latent_dim), nn.ELU(), nn.Linear(latent_dim, latent_dim))
+        self.res_2_meta_mlp1 = nn.Sequential(nn.Linear(latent_dim + 3, latent_dim), nn.ELU(), nn.Linear(latent_dim, latent_dim))
+        self.res_2_meta_mlp2 = nn.Sequential(nn.Linear(latent_dim + 3, latent_dim), nn.ELU(), nn.Linear(latent_dim, latent_dim))
+        self.meta_gnn1 = GATv2Conv(latent_dim, latent_dim, edge_dim=1, heads=4, concat=False)
+        self.fusion1 = GatedMetaFusion(latent_dim)
+        self.broadcast1 = GatedBeadFusion(latent_dim)
+        self.meta_gnn2 = GATv2Conv(latent_dim, latent_dim, edge_dim=1, heads=4, concat=False)
+        self.fusion2 = GatedMetaFusion(latent_dim)
+        self.broadcast2 =  GatedBeadFusion(latent_dim)
+        self.coord_head = nn.Sequential(
+            nn.Linear(latent_dim, latent_dim),
+            nn.ELU(),
+            nn.Linear(latent_dim, latent_dim),
+            nn.ELU(),
+            nn.Linear(latent_dim, latent_dim),
+            nn.ELU(),
+            nn.Linear(latent_dim, 3)
+        )
+        self.register_buffer("sec_ids", sec_ids.long())
+        self.register_buffer("beads_ids", beads_ids.long())
+        self.register_buffer("meta_edge_index", meta_edge_index.long())
+        self.register_buffer("edge_dist", edge_dist.float())
+        self.register_buffer("pe_vector_res_2_meta", pe_vector_res_2_meta.float())
+        self.register_buffer("pe_vector_bead_2_res", pe_vector_bead_2_res.float())
+        self.register_buffer("meta_2_node_edge", meta_2_node_edge.long())
+        self.register_buffer("meta_2_node_vector", meta_2_node_vector.float())
+
+    def forward(self, x):
+        B = x.shape[0]
+        x = self.mapping_mlp(x)
+        batch_sec_idx, batch_beads_idx, batch_meta_edge_idx, batch_edge_dist, batch_meta_2_node_idx, batch_meta_2_node_vector = expand_batch(B, self.sec_ids, self.meta_edge_index, self.edge_dist, self.meta_2_node_edge, self.meta_2_node_vector, self.beads_ids)
+        x = x.reshape(B * self.point_num, -1)
+        batch_pe_vector_res_2_meta = self.pe_vector_res_2_meta.repeat(B, 1)
+        batch_pe_vector_bead_2_res = self.pe_vector_bead_2_res.repeat(B, 1)
+
+        # first round forward
+        x_tmp = self.bead_2_res_mlp1(torch.cat((x,batch_pe_vector_bead_2_res),dim=-1))
+        res_x = scatter_mean(x_tmp, batch_beads_idx, dim=0)
+        x_tmp = self.res_2_meta_mlp1(torch.cat((res_x ,batch_pe_vector_res_2_meta),dim=-1))
+        meta_x = scatter_mean(x_tmp, batch_sec_idx, dim=0)
+        meta_x = self.meta_gnn1(meta_x, batch_meta_edge_idx, edge_attr= batch_edge_dist)
+        # first round broadcast
+        x_res_fused = self.fusion1(res_x, meta_x, batch_sec_idx, batch_pe_vector_res_2_meta, batch_meta_2_node_idx, batch_meta_2_node_vector)
+        x_bead_fused = self.broadcast1(x, x_res_fused, batch_beads_idx, batch_pe_vector_bead_2_res)
+        # second round forward
+        x_tmp = self.bead_2_res_mlp2(torch.cat((x_bead_fused,batch_pe_vector_bead_2_res),dim=-1))
+        res_x = scatter_mean(x_tmp, batch_beads_idx, dim=0)
+        x_tmp = self.res_2_meta_mlp2(torch.cat((res_x ,batch_pe_vector_res_2_meta),dim=-1))
+        meta_x = scatter_mean(x_tmp, batch_sec_idx, dim=0)
+        meta_x = self.meta_gnn2(meta_x, batch_meta_edge_idx, edge_attr= batch_edge_dist)
+        # second round broadcast
+        x_res_fused = self.fusion2(res_x, meta_x, batch_sec_idx, batch_pe_vector_res_2_meta, batch_meta_2_node_idx, batch_meta_2_node_vector)
+        x_bead_fused = self.broadcast2(x, x_res_fused, batch_beads_idx, batch_pe_vector_bead_2_res)
+        delta_pos = self.coord_head(x_bead_fused).reshape(B,-1)
+        return delta_pos
+
+# class HierarchicalDeltaGNN(nn.Module):
+#     def __init__(self, in_dim, d_hidden_dim, latent_dim, sec_ids, meta_edge_index, edge_dist, pe_vector, meta_2_node_edge, meta_2_node_vector,out_dim):
+#         super().__init__()
+#         # self.mapping_mlp = Linear(in_dim, out_dim //3 * latent_dim)
+#         self.mapping_mlp = nn.Linear(in_dim, out_dim //3 * latent_dim)
+#         # self.norm1 = nn.LayerNorm(latent_dim)
+#         # self.mapping_mlp = MLP(np.concatenate(([in_dim],d_hidden_dim)), np.concatenate((d_hidden_dim,[out_dim //3 * latent_dim])))
+#         self.mlp1 = nn.Sequential(Linear(latent_dim + 3, latent_dim),nn.ELU(),Linear(latent_dim, latent_dim))
+#         # self.norm2 = nn.LayerNorm(latent_dim)
+#         self.meta_gnn1 = GATv2Conv(latent_dim, latent_dim, edge_dim=1,heads=4, concat=False)
+#         # self.norm3 = nn.LayerNorm(latent_dim)
+#         self.fusion1 = GatedMetaFusion(latent_dim)
+#         # self.norm4 = nn.LayerNorm(latent_dim)
+#         self.mlp2 = nn.Sequential(Linear(latent_dim + 3, latent_dim),nn.ELU(),Linear(latent_dim, latent_dim))
+#         self.meta_gnn2 = GATv2Conv(latent_dim, latent_dim, edge_dim=1,heads=4, concat=False)
+#         self.fusion2 = GatedMetaFusion(latent_dim)
+#         # self.mlp3 = Linear(latent_dim, latent_dim)
+#         # self.meta_gnn3 = GATv2Conv(latent_dim, latent_dim, edge_dim=1,heads=4, concat=False)
+#         # self.fusion3 = GatedMetaFusion(latent_dim)
+#         self.sec_ids = sec_ids
+#         self.meta_edge_index = meta_edge_index
+#         self.edge_dist = edge_dist
+#         self.pe_vector = pe_vector
+#         self.meta_2_node_edge = meta_2_node_edge
+#         self.meta_2_node_vector = meta_2_node_vector
+#         self.point_num = out_dim // 3
+#         self.coord_head = nn.Sequential(
+#             nn.Linear(latent_dim, latent_dim),
+#             nn.ELU(),
+#             nn.Linear(latent_dim, latent_dim),
+#             nn.ELU(),
+#             nn.Linear(latent_dim, latent_dim),
+#             nn.ELU(),
+#             nn.Linear(latent_dim, 3)
+#         )
+
+#     def forward(self, x):
+#         B = x.shape[0]
+#         x = self.mapping_mlp(x)
+#         batch_sec_idx,batch_meta_edge_idx,batch_edge_dist,batch_meta_2_node_idx,batch_meta_2_node_vector = expand_batch(B, self.sec_ids, self.meta_edge_index,self.edge_dist,self.meta_2_node_edge,self.meta_2_node_vector)
+#         batch_sec_idx, batch_meta_edge_idx, batch_edge_dist,batch_meta_2_node_idx,batch_meta_2_node_vector = batch_sec_idx.to(x.device), batch_meta_edge_idx.to(x.device), batch_edge_dist.to(x.device),batch_meta_2_node_idx.to(x.device),batch_meta_2_node_vector.to(x.device)
+#         x = x.reshape(B * self.point_num, -1)
+#         # x = self.norm1(x)
+#         batch_pe_vector = self.pe_vector.repeat(B,1).to(x.device)
+#         x = self.mlp1(torch.cat((x,batch_pe_vector),dim=-1))
+#         meta_x = scatter_mean(x, batch_sec_idx, dim=0)
+#         # meta_x = self.norm2(meta_x)
+#         meta_x = self.meta_gnn1(meta_x, batch_meta_edge_idx, edge_attr= batch_edge_dist)
+#         x_fused = self.fusion1(x, meta_x, batch_sec_idx,batch_pe_vector,batch_meta_2_node_idx,batch_meta_2_node_vector)
+#         # x_fused  = self.norm3(x_fused)
+#         x = self.mlp2(torch.cat((x_fused,batch_pe_vector),dim=-1))
+#         meta_x = scatter_mean(x, batch_sec_idx, dim=0)
+#         # meta_x = self.norm4(meta_x)
+#         meta_x = self.meta_gnn2(meta_x, batch_meta_edge_idx, edge_attr= batch_edge_dist)
+#         x_fused = self.fusion2(x, meta_x, batch_sec_idx,batch_pe_vector,batch_meta_2_node_idx,batch_meta_2_node_vector)
+#         # x = self.mlp3(x_fused)
+#         # meta_x = scatter_mean(x, batch_sec_idx, dim=0)
+#         # meta_x = self.meta_gnn3(meta_x, batch_meta_edge_idx, edge_attr= batch_edge_dist)
+#         # x_fused = self.fusion3(x, meta_x, batch_sec_idx)
+#         delta_pos = self.coord_head(x_fused).reshape(B,-1)
+#         return delta_pos
+
+# class HierarchicalDeltaGNN_CG(nn.Module):
+#     def __init__(self, in_dim, d_hidden_dim, latent_dim, sec_ids, beads_ids, meta_edge_index, edge_dist, pe_vector_res_2_meta, pe_vector_bead_2_res,meta_2_node_edge, meta_2_node_vector,out_dim):
+#         super().__init__()
+#         self.mapping_mlp = Linear(in_dim, out_dim //3 * latent_dim)
+#         self.bead_2_res_mlp1 = nn.Sequential(Linear(latent_dim + 3, latent_dim),nn.ELU(),Linear(latent_dim, latent_dim))
+#         self.bead_2_res_mlp2 = nn.Sequential(Linear(latent_dim + 3, latent_dim),nn.ELU(),Linear(latent_dim, latent_dim))
+#         self.res_2_meta_mlp1 = nn.Sequential(Linear(latent_dim + 3, latent_dim),nn.ELU(),Linear(latent_dim, latent_dim))
+#         self.res_2_meta_mlp2 = nn.Sequential(Linear(latent_dim + 3, latent_dim),nn.ELU(),Linear(latent_dim, latent_dim))
+#         self.meta_gnn1 = GATv2Conv(latent_dim, latent_dim, edge_dim=1,heads=4, concat=False)
+#         self.fusion1 = GatedMetaFusion(latent_dim)
+#         self.broadcast1 = GatedBeadFusion(latent_dim)
+#         self.meta_gnn2 = GATv2Conv(latent_dim, latent_dim, edge_dim=1,heads=4, concat=False)
+#         self.fusion2 = GatedMetaFusion(latent_dim)
+#         self.broadcast2 =  GatedBeadFusion(latent_dim)
+#         self.sec_ids = sec_ids
+#         self.beads_ids = beads_ids
+#         self.meta_edge_index = meta_edge_index
+#         self.edge_dist = edge_dist
+#         self.pe_vector_res_2_meta = pe_vector_res_2_meta
+#         self.pe_vector_bead_2_res = pe_vector_bead_2_res
+#         self.meta_2_node_edge = meta_2_node_edge
+#         self.meta_2_node_vector = meta_2_node_vector
+#         self.point_num = out_dim // 3
+#         self.coord_head = nn.Sequential(
+#             nn.Linear(latent_dim, latent_dim),
+#             nn.ELU(),
+#             nn.Linear(latent_dim, latent_dim),
+#             nn.ELU(),
+#             nn.Linear(latent_dim, latent_dim),
+#             nn.ELU(),
+#             nn.Linear(latent_dim, 3)
+#         )
+
+#     def forward(self, x):
+#         B = x.shape[0]
+#         x = self.mapping_mlp(x)
+#         batch_sec_idx,batch_beads_idx ,batch_meta_edge_idx,batch_edge_dist,batch_meta_2_node_idx,batch_meta_2_node_vector = expand_batch_CG(B, self.sec_ids, self.beads_ids,self.meta_edge_index,self.edge_dist,self.meta_2_node_edge,self.meta_2_node_vector)
+#         batch_sec_idx, batch_beads_idx ,batch_meta_edge_idx, batch_edge_dist,batch_meta_2_node_idx,batch_meta_2_node_vector = batch_sec_idx.to(x.device), batch_beads_idx.to(x.device), batch_meta_edge_idx.to(x.device), batch_edge_dist.to(x.device),batch_meta_2_node_idx.to(x.device),batch_meta_2_node_vector.to(x.device)
+#         x = x.reshape(B * self.point_num, -1)
+#         batch_pe_vector_res_2_meta = self.pe_vector_res_2_meta.repeat(B,1).to(x.device)
+#         batch_pe_vector_bead_2_res = self.pe_vector_bead_2_res.repeat(B,1).to(x.device)
+#         # first round forward
+#         x_tmp = self.bead_2_res_mlp1(torch.cat((x,batch_pe_vector_bead_2_res),dim=-1))
+#         res_x = scatter_mean(x_tmp, batch_beads_idx, dim=0)
+#         x_tmp = self.res_2_meta_mlp1(torch.cat((res_x ,batch_pe_vector_res_2_meta),dim=-1))
+#         meta_x = scatter_mean(x_tmp, batch_sec_idx, dim=0)
+#         meta_x = self.meta_gnn1(meta_x, batch_meta_edge_idx, edge_attr= batch_edge_dist)
+#         # first round broadcast
+#         x_res_fused = self.fusion1(res_x, meta_x, batch_sec_idx, batch_pe_vector_res_2_meta, batch_meta_2_node_idx, batch_meta_2_node_vector)
+#         x_bead_fused = self.broadcast1(x, x_res_fused, batch_beads_idx, batch_pe_vector_bead_2_res)
+#         # second round forward
+#         x_tmp = self.bead_2_res_mlp2(torch.cat((x_bead_fused,batch_pe_vector_bead_2_res),dim=-1))
+#         res_x = scatter_mean(x_tmp, batch_beads_idx, dim=0)
+#         x_tmp = self.res_2_meta_mlp2(torch.cat((res_x ,batch_pe_vector_res_2_meta),dim=-1))
+#         meta_x = scatter_mean(x_tmp, batch_sec_idx, dim=0)
+#         meta_x = self.meta_gnn2(meta_x, batch_meta_edge_idx, edge_attr= batch_edge_dist)
+#         # second round broadcast
+#         x_res_fused = self.fusion2(res_x, meta_x, batch_sec_idx, batch_pe_vector_res_2_meta, batch_meta_2_node_idx, batch_meta_2_node_vector)
+#         x_bead_fused = self.broadcast2(x, x_res_fused, batch_beads_idx, batch_pe_vector_bead_2_res)
+#         delta_pos = self.coord_head(x_bead_fused).reshape(B,-1)
+#         return delta_pos

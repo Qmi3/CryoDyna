@@ -240,7 +240,9 @@ class martini22:
         #----+-----------------------+
         ## E | NONBONDED PARAMETERS |
         #----+-----------------------+  
-        LJ_params = pickle.load(open(f'{os.path.dirname(__file__)}/LJ_params.pkl', 'rb'))
+        from importlib.resources import files
+        LJ_path = files("cryodyna.martini")/"LJ_params.pkl"
+        LJ_params = pickle.load(LJ_path.open('rb'))
         self.bead_types = LJ_params['bead_types']
         # self.C6_matrix = LJ_params['C6_matrix']
         # self.C12_matrix = LJ_params['C12_matrix']
@@ -1295,7 +1297,9 @@ class martini22dna:
         #----+-----------------------+
         ## E | NONBONDED PARAMETERS |
         #----+-----------------------+  
-        LJ_params = pickle.load(open(f'{os.path.dirname(__file__)}/LJ_params_dna.pkl', 'rb'))
+        from importlib.resources import files
+        LJ_path = files("cryodyna.martini")/"LJ_params_dna.pkl"
+        LJ_params = pickle.load(LJ_path.open('rb'))
         self.bead_types = LJ_params['bead_types']
         self.eps_matrix = LJ_params['epsilon_matrix']
         self.s_matrix = LJ_params['sigma_matrix']

@@ -186,33 +186,34 @@ def wasserstein_distance(X, Y):
 
     return distance
 
-from pymol import cmd
-backbone_atoms = "N+CA+C+O"
-def get_rmsd(pdb1, pdb2, cycles=0):
-    cmd.load(pdb1, 'obj1')
-    cmd.load(pdb2, 'obj2')
-    align = cmd.align('obj1','obj2', cycles=cycles)
-    cmd.delete('all')
-    return align[0]
+# from pymol import cmd
+# backbone_atoms = "N+CA+C+O"
+# def get_rmsd(pdb1, pdb2, cycles=0):
+#     cmd.load(pdb1, 'obj1')
+#     cmd.load(pdb2, 'obj2')
+#     align = cmd.align('obj1','obj2', cycles=cycles)
+#     cmd.delete('all')
+#     return align[0]
 
-def get_Ca_rmsd(pdb1, pdb2, cycles=0):
-    cmd.load(pdb1, 'obj1')
-    cmd.load(pdb2, 'obj2')
-    align = cmd.align("obj1 and (name CA or name C1')','obj2 and (name CA or name C1')", cycles=cycles)
-    cmd.delete('all')
-    return align[0]
+# def get_Ca_rmsd(pdb1, pdb2, cycles=0):
+#     cmd.load(pdb1, 'obj1')
+#     cmd.load(pdb2, 'obj2')
+#     align = cmd.align("obj1 and (name CA or name C1')','obj2 and (name CA or name C1')", cycles=cycles)
+#     cmd.delete('all')
+#     return align[0]
   
-def get_backbone_rmsd(pdb1, pdb2, cycles=0):
-    cmd.load(pdb1, 'obj1')
-    cmd.load(pdb2, 'obj2')
-    try:
-      align = cmd.align(f'obj1 and name {backbone_atoms} and polymer',
-                        f'obj2 and name {backbone_atoms} and polymer', cycles=cycles)
-      cmd.delete('all')
-      return align[0]
-    except:
-      cmd.delete('all')
-      return 0
+# def get_backbone_rmsd(pdb1, pdb2, cycles=0):
+#     cmd.load(pdb1, 'obj1')
+#     cmd.load(pdb2, 'obj2')
+#     try:
+#       align = cmd.align(f'obj1 and name {backbone_atoms} and polymer',
+#                         f'obj2 and name {backbone_atoms} and polymer', cycles=cycles)
+#       cmd.delete('all')
+#       return align[0]
+#     except:
+#       cmd.delete('all')
+#       return 0
+
 # def sigmoid(x):
 #   x_ravel = x.ravel()  # 将numpy数组展平
 #   length = len(x_ravel)

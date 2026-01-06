@@ -6,8 +6,8 @@ The detailed user guide can be found at [here](https://stu-pku-edu-cn.gitbook.io
 
 ## Installation
 
-- Create a conda environment: `conda create -n cryodyna python=3.9 -y`
-- Clone this repository and install the package: `git clone https://github.com/Qmi3/CryoDyna.git && cd CryoDyna && pip install .`
+- Create a conda environment: `conda create -n cryodyna python=3.9 -y && conda activate cryodyna`
+- Clone this repository and install the package: `git clone https://github.com/Qmi3/Cryodyna.git && cd Cryodyna && pip install .`
 
 ## Quick start
 
@@ -19,7 +19,7 @@ You may need to prepare the resources below before running `CryoDyna`:
 - a pdb file (which has been docked into the concensus map)
 
 ### Training
-CryoDyna predicts conformational heterogeneity in two distinct level(residue-level and bead-level). Here's an illustration of its process:
+CryoDyna predicts conformational heterogeneity in two distinct level (residue-level and bead-level). Here's an illustration of its process:
 
 #### Stage1 Training the residue-level deformation field
 In this step, we generate an ensemble of molecule structures from the particles with Ca/P atom representing each residue. Note that the `pdb` file is used in this step and it should be docked into the concensus map!
