@@ -6,8 +6,18 @@ The detailed user guide can be found at [here](https://stu-pku-edu-cn.gitbook.io
 
 ## Installation
 
-- Create a conda environment: `conda create -n cryodyna python=3.9 -y && conda activate cryodyna`
-- Clone this repository and install the package: `git clone https://github.com/Qmi3/Cryodyna.git && cd Cryodyna && pip install .`
+- Create a conda environment: 
+```bash
+conda create -n cryodyna python=3.9 -y 
+conda activate cryodyna
+```
+- Clone this repository and install the package: 
+```bash
+git clone https://github.com/Qmi3/Cryodyna.git
+cd Cryodyna 
+pip install -r requirements.txt
+pip install -e .
+```
 
 ## Quick start
 

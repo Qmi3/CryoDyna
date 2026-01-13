@@ -91,7 +91,7 @@ if __name__ == "__main__":
               'cstar_center_origin=cryodyna.cli_tools.sak:center_origin',
               'cstar_generate_gaussian_density=cryodyna.cli_tools.sak:generate_gaussian_density'
           ], },
-          install_requires=parse_requirements('requirements.txt'),
+        #   install_requires=parse_requirements('requirements.txt'),
           package_data={"cryodyna": ["martini/*.pkl"]},
           )
     check_dssp()

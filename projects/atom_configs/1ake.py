@@ -11,10 +11,6 @@ extra_input_data_attr = dict(
     use_domain=False,
     domain_path=None,
     ckpt_path=None,
-    pred_sequence='/lustre/grp/gyqlab/zhangcw/openfold/1ake/fasta_dir/1ake.fasta',
-    protein_feature_path='/lustre/grp/gyqlab/share/cryoem_particles/tutorial_data_1ake/predictions/PDB_model_1_multimer_v3_feature_dict.pkl',
-    fold_feature_path='/lustre/grp/gyqlab/share/cryoem_particles/tutorial_data_1ake/predictions/PDB_model_1_multimer_v3_output_dict.pkl',
-    jax_param_path = '/lustre/grp/gyqlab/share/AF2_database/params/params_model_1_multimer_v3.npz'
 )
 
 data_process = dict(

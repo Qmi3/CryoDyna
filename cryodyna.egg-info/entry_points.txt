@@ -1,4 +1,0 @@
-[console_scripts]
-cstar_center_origin = cryodyna.cli_tools.sak:center_origin
-cstar_generate_gaussian_density = cryodyna.cli_tools.sak:generate_gaussian_density
-cstar_show_mrc_info = cryodyna.cli_tools.sak:show_mrc_info
