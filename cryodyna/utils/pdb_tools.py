@@ -13,7 +13,7 @@ import biotite.sequence.graphics as graphics
 import biotite.structure as bt_struc
 import matplotlib.pyplot as plt
 import numpy as np
-from Bio.PDB import PDBIO, Chain, Entity, Model, PDBParser, Structure, MMCIFParser
+from Bio.PDB import PDBIO, Chain, Entity, Model, PDBParser, Structure, MMCIFParser, is_aa
 from Bio.PDB.DSSP import DSSP
 from Bio.PDB.parse_pdb_header import parse_pdb_header
 from biotite.structure import AtomArray, AtomArrayStack
@@ -661,6 +661,8 @@ def extract_sec_ids_merge_small_blocks(pdb_file, dssp_exec='mkdssp', min_block_l
             # Step 1: 解析每个残基的 SS3 类型
             for res in residues:
                 res_id = res.get_id()
+                if not is_aa(res, standard=True):
+                    continue
                 dssp_key = (chain_id, res_id)
                 # if not is_aa(res, standard=True):
                 #     print(dssp_key)
