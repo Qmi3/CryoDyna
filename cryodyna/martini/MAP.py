@@ -79,6 +79,7 @@ class CoarseGrained:
         "GLY":  FUNC.nsplit(bb),
         "HIS":  FUNC.nsplit(bb,"CB CG","CD2 HD2 NE2 HE2","ND1 HD1 CE1 HE1"),
         "HIH":  FUNC.nsplit(bb,"CB CG","CD2 HD2 NE2 HE2","ND1 HD1 CE1 HE1"),     # Charged Histidine.
+        "HSD":  FUNC.nsplit(bb,"CB CG","CD2 HD2 NE2 HE2","ND1 HD1 CE1 HE1"),
         "ILE":  FUNC.nsplit(bb,"CB CG1 CG2 CD CD1"),
         "LYS":  FUNC.nsplit(bb,"CB CG CD","CE NZ HZ1 HZ2 HZ3"),
         "LEU":  FUNC.nsplit(bb,"CB CG CD1 CD2"),
