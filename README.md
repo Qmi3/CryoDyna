@@ -55,6 +55,7 @@ CryoDyna predicts conformational heterogeneity in two distinct level (residue-le
 <p align="center">
   <img width="500" src="cryodyna/images/CryoDyna.png">
 </p>
+
 In this step, we generate an ensemble of molecule structures from the particles with Ca/P atom representing each residue. Note that the `pdb` file is used in this step and it should be docked into the concensus map!
 
 ```shell
@@ -87,14 +88,14 @@ atom_xxxxx/
 <p align="center">
   <img width="500" src="cryodyna/images/CryoDyna-CG.png">
 </p>
+
 In this step, we generate an ensemble of molecule structures from the particles with 1-6 beads representing each residue.
+
 
 During the training of CryoDyna-CG, the model requires a MARTINI2 coarse-grained structural prior.
 You may directly provide an all-atom structure, and CryoDyna-CG will automatically perform the coarse-graining.
 
-**(Optionally)**, you may provide a MARTINI-coarse-grained structure that has already been energy-minimized, which can help the structural regularization converge more quickly during the early training stage.
-
-Using 1ake as an example:
+**(Optionally)**, you may provide a MARTINI-coarse-grained structure that has already been energy-minimized, which can help the structural regularization converge more quickly during the early training stage. Using 1ake as an example:
 First, run ``` ./martinize_struct_prior.sh ``` in a Python 2 environment to generate the coarse-grained mapping from the all-atom structure.
 Then, run ```./minimize_struct_prior.sh``` to perform energy minimization (this step requires that the user has GROMACS installed).
 
@@ -131,7 +132,7 @@ In our work, we use [CG2AT2 + Backward](https://github.com/PepperLee-sm/CG2AT2-B
 
 ### Backmapping Example
 
-As an example, we perform backmapping for the **PCA1 trajectory at epoch 3**.
+As an example, we perform backmapping for the **PC1 trajectory at epoch 3**.
 
 First, split the 10 structures contained in `pca-1.pdb` into individual `.pdb` files by running:
 ```bash
@@ -139,7 +140,7 @@ python split_pdb.py 1ake_cg/atom_1ake/0003_0003124/pca-1.pdb
 ```
 The resulting single-structure .pdb files will be saved in `1ake_cg/atom_1ake/0003_0003124/pca-1`
 
-Next, assuming that CG2AT2_Backward has already been properly configured, run `./backmapping_dir.sh` to perform the backmapping. This step converts the coarse-grained structures along the PCA trajectory into atomistic structures.
+Next, assuming that CG2AT2_Backward has already been properly configured, run `./backmapping_dir.sh` to perform the backmapping. This step converts the coarse-grained structures along the PC1 trajectory into atomistic structures.
 
 ```text
 atom_xxxxx/
