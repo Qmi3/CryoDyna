@@ -1,9 +1,9 @@
 dataset_attr = dict(
-    dataset_dir="/lustre/grp/gyqlab/share/cryoem_particles/tutorial_data_1ake/uniform_snr0-0001_ctf",
-    starfile_path="/lustre/grp/gyqlab/share/cryoem_particles/tutorial_data_1ake/uniform_snr0-0001_ctf/simulation.star",
+    dataset_dir="star/tutorial_data_1ake/uniform_snr0-0001_ctf",
+    starfile_path="star/tutorial_data_1ake/uniform_snr0-0001_ctf/simulation.star",
     apix=1.0,
     side_shape=128,
-    ref_pdb_path="/lustre/grp/gyqlab/share/cryoem_particles/tutorial_data_1ake/pdbs/1akeA_50.pdb",
+    ref_pdb_path="star/tutorial_data_1ake/pdbs/1akeA_50.pdb",
 )
 work_dir_name = "1ake"
 extra_input_data_attr = dict(
@@ -34,24 +34,6 @@ do_ref_init = True
 knn_num = 16
 gmm = dict(tunable=False)
 
-# model = dict(model_type="VAE",
-#              input_space="real",
-#              ctf="v2",
-#              model_cfg=dict(
-#                  encoder_cls='GAT',
-#                  decoder_cls='metaGNN',
-#                  e_hidden_dim=(512, 256, 128),
-#                  z_dim=128,
-#                  latent_dim = 32,
-#                  attention_layer = 2,
-#                  d_hidden_dim=(128,128),
-#                 #  d_e_hidden_dim=32,
-#                 #  d_hidden_dim=(512, 256, 128, 64, 32)[::-1],
-#                 #  d_hidden_dim=(512,32,12)[::-1],
-#                  e_hidden_layers=3,
-#                 d_hidden_layers=2,
-#                 #  pe_dim = 8,
-#              ))
 model = dict(model_type="VAE",
              input_space="real",
              ctf="v2",
@@ -63,31 +45,9 @@ model = dict(model_type="VAE",
                  latent_dim = 32,
                  attention_layer = 2,
                  d_hidden_dim=(32,64,128),
-                #  d_e_hidden_dim=32,
-                #  d_hidden_dim=(512, 256, 128, 64, 32)[::-1],
-                #  d_hidden_dim=(512,32,12)[::-1],
-                e_hidden_layers=4,
-                d_hidden_layers=3,
-                #  pe_dim = 8,
+                 e_hidden_layers=4,
+                 d_hidden_layers=3,
              ))
-# model = dict(model_type="VAE",
-#              input_space="real",
-#              ctf="v2",
-#              model_cfg=dict(
-#                  encoder_cls='MS-GAT',
-#                  decoder_cls='MLP',
-#                  e_hidden_dim=(512, 256, 128, 64, 32),
-#                  z_dim=8,
-#                  latent_dim = 32,
-#                  attention_layer = 2,
-#                 #  d_hidden_dim=(128,128),
-#                 #  d_e_hidden_dim=32,
-#                  d_hidden_dim=(512, 256, 128, 64, 32)[::-1],
-#                 #  d_hidden_dim=(512,32,12)[::-1],
-#                  e_hidden_layers=5,
-#                 d_hidden_layers=5,
-#                 #  pe_dim = 8,
-#              ))
 loss = dict(
     intra_chain_cutoff=12.,
     inter_chain_cutoff=0.,
@@ -118,9 +78,5 @@ runner = dict(log_every_n_step=100,)
 trainer = dict(max_epochs=30,
                devices=1,
                precision="32",
-            #    num_sanity_val_steps=0,
-            #    val_check_interval=1000,
                check_val_every_n_epoch=1)
 
-# pose_searcher = False
-# num_ipa = 1

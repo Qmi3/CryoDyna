@@ -7,9 +7,10 @@
 #SBATCH --gres=gpu:1
 #SBATCH -t 120:00:00
 
-cryodyna/martini/martinize-na.py -f projects/struct_prior/1akeA_50/1akeA_50.pdb \
+mkdir -p projects/struct_prior/1akeA_50/
+cp projects/star/tutorial_data_1ake/pdbs/1akeA_50.pdb projects/struct_prior/1akeA_50/
+python2 cryodyna/martini/martinize-na.py -f projects/struct_prior/1akeA_50/1akeA_50.pdb \
 -o projects/struct_prior/1akeA_50/1akeA_50_cg.top \
 -x projects/struct_prior/1akeA_50/1akeA_50_cg.pdb \
 -sep \
--dssp /lustre/grp/gyqlab/lism/anaconda3/envs/cryostar/bin/mkdssp # replace with the path to the mkdssp executable 
-
+-dssp /lustre/grp/gyqlab/lism/anaconda3/envs/cryodyna/bin/mkdssp # replace with the path to the mkdssp executable 

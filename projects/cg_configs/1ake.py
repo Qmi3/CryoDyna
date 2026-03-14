@@ -1,11 +1,11 @@
 import shutil
 dataset_attr = dict(
-    dataset_dir="/lustre/grp/gyqlab/share/cryoem_particles/tutorial_data_1ake/uniform_snr0-0001_ctf",
-    starfile_path="/lustre/grp/gyqlab/share/cryoem_particles/tutorial_data_1ake/uniform_snr0-0001_ctf/simulation.star",
+    dataset_dir="star/tutorial_data_1ake/uniform_snr0-0001_ctf",
+    starfile_path="star/tutorial_data_1ake/uniform_snr0-0001_ctf/simulation.star",
     apix=1.0,
     side_shape=128,
-    ref_pdb_path="/lustre/grp/gyqlab/lism/CryoDyna/projects/struct_prior/1akeA_50/1akeA_50.pdb",
-    ref_cg_pdb_path="/lustre/grp/gyqlab/lism/CryoDyna/projects/struct_prior/1akeA_50/MIN/min.pdb",
+    ref_pdb_path="struct_prior/1akeA_50/1akeA_50.pdb",
+    ref_cg_pdb_path="struct_prior/1akeA_50/MIN/min.pdb",
 )
 
 cg_attr = dict(
