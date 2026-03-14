@@ -138,7 +138,7 @@ First, split the 10 structures contained in `pca-1.pdb` into individual `.pdb` f
 ```bash
 python split_pdb.py 1ake_cg/atom_1ake/0003_0003124/pca-1.pdb
 ```
-The resulting single-structure .pdb files will be saved in `1ake_cg/atom_1ake/0003_0003124/pca-1`
+The resulting single-structure .pdb files will be saved in `1ake_cg/atom_1ake/0003_0003124/pca-1`.
 
 Next, assuming that CG2AT2_Backward has already been properly configured, run `./backmapping_dir.sh` to perform the backmapping. This step converts the coarse-grained structures along the PC1 trajectory into atomistic structures.
 
