@@ -1,6 +1,6 @@
 ; MARTINI (martini22dna) Coarse Grained topology file for "Protein_A"
 ; Created by py version 2.2 
-; Using the following options:  -f projects/struct_prior/1akeA_50/1akeA_50.pdb -o projects/struct_prior/1akeA_50/1akeA_50_cg.top -x projects/struct_prior/1akeA_50/1akeA_50_cg.pdb -sep -dssp /lustre/grp/gyqlab/lism/anaconda3/envs/cryostar/bin/mkdssp
+; Using the following options:  -f projects/struct_prior/1akeA_50/1akeA_50.pdb -o projects/struct_prior/1akeA_50/1akeA_50_cg.top -x projects/struct_prior/1akeA_50/1akeA_50_cg.pdb -sep -dssp /lustre/grp/gyqlab/lism/anaconda3/envs/cryodyna/bin/mkdssp
 ; #####################################################################################################
 ; This topology is based on development beta of Martini DNA and should NOT be used for production runs.
 ; #####################################################################################################

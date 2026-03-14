@@ -1,6 +1,6 @@
 dataset_attr = dict(
-    dataset_dir="/lustre/grp/gyqlab/share/cryoem_particles/tutorial_data_1ake/uniform_snr0-0001_ctf",
-    starfile_path="/lustre/grp/gyqlab/share/cryoem_particles/tutorial_data_1ake/uniform_snr0-0001_ctf/simulation.star",
+    dataset_dir="star/tutorial_data_1ake/uniform_snr0-0001_ctf",
+    starfile_path="star/tutorial_data_1ake/uniform_snr0-0001_ctf/simulation.star",
     apix=1.0,
     side_shape=128,
     f_mu=0.0,
@@ -8,7 +8,7 @@ dataset_attr = dict(
 )
 
 extra_input_data_attr = dict(
-    given_z='/lustre/grp/gyqlab/share/cryoem_particles/tutorial_data_1ake/1ake_CryoDyna_CG_epoch29/z.npy',
+    given_z='/lustre/grp/gyqlab/lism/CryoDyna/projects/1ake/atom_1ake_update/0029_0023430/z.npy',
     ckpt_path=None,
 )
 
@@ -26,7 +26,7 @@ data_loader = dict(
 
 exp_name = ""
 eval_mode = False
-work_dir_name="1ake"
+work_dir_name="1ake_density"
 model = dict(shift_data=False,
              shift_method="interp",
              enc_space="fourier",

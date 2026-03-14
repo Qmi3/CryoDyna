@@ -22,7 +22,7 @@ from cryodyna.utils.losses import calc_kl_loss
 from cryodyna.utils.ml_modules import VAEEncoder, reparameterize
 from cryodyna.utils.mrc_tools import save_mrc
 
-from projects.miscs import infer_ctf_params_from_config
+from miscs import infer_ctf_params_from_config
 
 log_to_current = rank_zero_only(log_to_current)
 

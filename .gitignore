@@ -1,6 +1,20 @@
 1ake_cg
-spike_MD_cg
+spike_MD*_cg
+IgG-*
 *.out
+*.ipynb
+*.zip
+*.txt
+slurm_eval
 
 *.egg-info/
 build/
+projects/1ake*
+projects/star
+projects/struct_prior
+projects/*npy
+projects/*pdf
+projects/__pycache__
+projects/*ipynb
+
+*.pyc
