@@ -156,7 +156,7 @@ def init_mmengine_exp(args,
                       backup_list=None,
                       inplace=True,
                       work_dir_name="work_dirs",
-                      project_name="cryostar",
+                      project_name="cryodyna",
                       tensorboard=False):
     """
         Initialization of an experiment, including creating the experiment's folder, 
@@ -231,7 +231,7 @@ def pl_init_exp(override_mode="default",
                 exp_prefix='',
                 backup_list=None,
                 inplace=False,
-                project_name="cryostar"):
+                project_name="cryodyna"):
     args = parse_mmengine_args(override_mode=override_mode)
     cfg = init_mmengine_config(args)
 
