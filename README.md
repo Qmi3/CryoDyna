@@ -17,6 +17,7 @@ git clone https://github.com/Qmi3/Cryodyna.git
 cd Cryodyna 
 pip install -r requirements.txt
 pip install -e .
+conda install -c ostrokach dssp
 ```
 
 ## Quick start
