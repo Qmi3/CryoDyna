@@ -621,7 +621,7 @@ class Chain:
                 chains.append(self[chainStart:i+1])
                 chainStart = i+1
         if chains:
-            logging.debug('Splitting chain %s in %s chains' % (self.id, len(chains)+1))
+            logging.info('Splitting chain %s in %s chains' % (self.id, len(chains)+1))
         return chains + [self[chainStart:]]
 
     def getname(self, basename=None):

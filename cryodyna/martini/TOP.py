@@ -1926,8 +1926,8 @@ class Topology:
             chain         = None
             self.secstruc = secstruc
 
-        logging.debug(self.secstruc)
-        logging.debug(self.sequence)
+        # logging.debug(self.secstruc)
+        # logging.debug(self.sequence)
 
         # Fetch the sidechains
         # Pad with empty lists for atoms, bonds, angles
@@ -2005,7 +2005,7 @@ class Topology:
                 for q in quadruples:
                     id, rn, ss, ca = zip(*q)
                     # Maybe do local elastic networks
-                    if ss == ("E", "E", "E", "E") and 'ExtendedDihedrals' not in self.options:
+                    if ss == ("E", "E", "E", "E") and not self.options['ExtendedDihedrals'].value:
                         # This one may already be listed as the 2-4 bond of a previous one
                         if not (id[0], id[2]) in self.bonds:
                             self.bonds.append(Bond(
@@ -2133,7 +2133,7 @@ class Topology:
             # The polarizable forcefield give problems with the charges in the sidechain,
             # if the backbone is also charged.
             # To avoid that, we add explicit exclusions
-            if bbb in self.options['ForceField'].charges.keys() and resname in self.options['ForceField'].mass_charge.keys():
+            if bbb in self.options['ForceField'].charges and resname in self.options['ForceField'].mass_charge:
                 for i in [j for j, d in enumerate(scatoms) if d == 'D']:
                     self.exclusions.append(Exclusion(
                         options    = self.options,
@@ -2148,7 +2148,7 @@ class Topology:
                     atype, aname = "v" + atype, "v" + aname
                 # If mass or charge diverse, we adopt it here.
                 # We don't want to do this for BB beads because of charged termini.
-                if resname in self.options['ForceField'].mass_charge.keys() and counter != 0:
+                if resname in self.options['ForceField'].mass_charge and counter != 0:
                     M, Q = self.options['ForceField'].mass_charge[resname]
                     aname = Q[counter-1] > 0 and 'SCP' or Q[counter-1] < 0 and 'SCN' or aname
                     self.atoms.append((atid, atype, resi, resname, aname, atid,
@@ -2233,8 +2233,8 @@ class Topology:
             chain         = None
             self.secstruc = secstruc
 
-        logging.debug(self.secstruc)
-        logging.debug(self.sequence)
+        # logging.debug(self.secstruc)
+        # logging.debug(self.sequence)
 
         # Fetch the base information 
         # Pad with empty lists for atoms, bonds, angles 

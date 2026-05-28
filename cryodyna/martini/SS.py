@@ -153,12 +153,7 @@ def call_dssp(chain, atomlist, executable='dsspcmbi'):
     ssdfile = 'chain_%s.ssd' % chain.id
 
     try:
-        if os.system(executable+" -V 2>/dev/null"):
-            logging.debug("New version of DSSP; Executing '%s -i /dev/stdin -o %s'" % (executable, ssdfile))
-            p = subp.Popen([executable, "-i", "/dev/stdin", "-o", ssdfile], stderr=subp.PIPE, stdout=subp.PIPE, stdin=subp.PIPE)
-        else:
-            logging.debug("Old version of DSSP; Executing '%s -- %s'" % (executable, ssdfile))
-            p = subp.Popen([executable, "--", ssdfile], stderr=subp.PIPE, stdout=subp.PIPE, stdin=subp.PIPE)
+        p = subp.Popen([executable, "-i", "/dev/stdin", "-o", ssdfile], stderr=subp.PIPE, stdout=subp.PIPE, stdin=subp.PIPE)
     except OSError:
         logging.error("A problem occured calling %s." % executable)
         sys.exit(1)

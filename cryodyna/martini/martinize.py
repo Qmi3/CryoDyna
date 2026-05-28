@@ -3,13 +3,12 @@
 
 # EDITABLE SECTIONS ARE MARKED WITH #@# 
 
+import shutil 
 
 version="2.2"
 authors=["Djurre de Jong", "Jaakko J. Uusitalo", "Tsjerk A. Wassenaar"]
 
-# Parameters are defined for the following (protein) forcefields:
-#forcefields = ['martini21','martini21p','martini22','martini22p','elnedyn','elnedyn22','elnedyn22p','martini22dna','elnedyn22dna','polbb']
-forcefields = ['martini22dna','elnedyn22dna']
+forcefields = ['martini22dna']
 
 
 notes = [
@@ -277,7 +276,7 @@ as argument, causing all chains to be multiscaled.
     ("-h",        Option(bool,                     0,    False, "Display this help.")),
     ("-ss",       Option(str,                      1,     None, "Secondary structure (File or string)")),
     ("-ssc",      Option(float,                    1,      0.5, "Cutoff fraction for ss in case of ambiguity (default: 0.5).")),
-    ("-dssp",     Option(str,                      1,     None, "DSSP executable for determining structure")),
+    ("-dssp",     Option(str,                      1,     shutil.which("mkdssp"), "DSSP executable for determining structure")),
 #    ("-pymol",    Option(str,                      1,     None, "PyMOL executable for determining structure")),
     ("-collagen", Option(bool,                     0,    False, "Use collagen parameters")),
     ("-his",      Option(bool,                     0,    False, "Interactively set the charge of each His-residue.")),
@@ -292,7 +291,7 @@ as argument, causing all chains to be multiscaled.
     ("-pf",       Option(float,                    1,     1000, "Position restraints force constant (default: 1000 kJ/mol/nm^2)")),
     ("-ed",       Option(bool,                     0,    False, "Use dihedrals for extended regions rather than elastic bonds)")),
     ("-sep",      Option(bool,                     0,    False, "Write separate topologies for identical chains.")),
-    ("-ff",       Option(str,                      1,'martini21', "Which forcefield to use: "+' ,'.join(n for n in forcefields[:-1]))),
+    ("-ff",       Option(str,                      1,'martini22dna', "Which forcefield to use: "+' ,'.join(n for n in forcefields))),
 # Fij = Fc exp( -a (rij - lo)**p )
     ("-elastic",  Option(bool,                     0,    False, "Write elastic bonds")),
     ("-ef",       Option(float,                    1,      500, "Elastic bond force constant Fc")),
@@ -330,6 +329,16 @@ enStrandLengths = []
 
 desc = ""
     
+def help():
+    """Print help text and list of options and end the program."""
+    import sys
+    for item in options:
+        if type(item) == str:
+            print(item)
+    for item in options:
+        if type(item) != str:
+            print("%10s  %s"%(item[0],item[1].description))
+    sys.exit()
 ##############################
 ## 2 # COMMAND LINE PARSING ##  -> @CMD <-
 ##############################
@@ -384,59 +393,24 @@ def option_parser(args,options,lists,version=0):
     logging.info('de Jong et al., J. Chem. Theory Comput., 2013, DOI:10.1021/ct300646g')
 
     # DNA write options based on selected DNA type.
-    options['dnatype']           = options['-dnatype'].value
-    if options['dnatype'] == 'ss':
-        options['-ff'].setvalue(['martini22dna'])
-    elif options['dnatype'] == 'ds-soft': 
-        options['-ff'].setvalue(['elnedyn22dna'])
-        lists['merges'].append('A,B')
-        options['-eu'].setvalue(['1.2'])
-        options['-ef'].setvalue(['13'])
-        options['-eb'].setvalue(['BB1,BB2,BB3,SC1'])
-    elif options['dnatype'] == 'ds-stiff':
-        options['-ff'].setvalue(['elnedyn22dna'])
-        lists['merges'].append('A,B')
-        options['-eu'].setvalue(['1.0'])
-        options['-ef'].setvalue(['500'])
-        options['-eb'].setvalue(['BB1,BB2,BB3,SC1,SC2,SC3,SC4'])
-    elif options['dnatype'] == 'all-soft':
-        options['-ff'].setvalue(['elnedyn22dna'])
-        lists['merges'].append('all')
-        options['-eu'].setvalue(['1.2'])
-        options['-ef'].setvalue(['13'])
-        options['-eb'].setvalue(['BB1,BB2,BB3,SC1'])
-    elif options['dnatype'] == 'all-stiff':
-        options['-ff'].setvalue(['elnedyn22dna'])
-        lists['merges'].append('all')
-        options['-eu'].setvalue(['1.0'])
-        options['-ef'].setvalue(['500'])
-        options['-eb'].setvalue(['BB1,BB2,BB3,SC1,SC2,SC3,SC4'])
-    elif options['dnatype'] == 'ss-stiff':
-        options['-ff'].setvalue(['elnedyn22dna'])
-        options['-eu'].setvalue(['1.0'])
-        options['-ef'].setvalue(['500'])
-        options['-eb'].setvalue(['BB1,BB2,BB3,SC1,SC2,SC3,SC4'])
-    elif options['dnatype'] == 'ignore':
-        pass
-    else: 
-        logging.error('Unrecognized DNA topology type. Giving up...')
-        sys.exit()
-     
+    options['-ff'].setvalue(['martini22dna'])
+    options['ForceField']= martini22dna()
     # The make the program flexible, the forcefield parameters are defined
     # for multiple forcefield. Check if a existing one is defined:
     ###_tmp  = __import__(options['-ff'].value.lower())
     ###options['ForceField']  = getattr(_tmp,options['-ff'].value.lower())()
-    try:
-        try:
-            # Try to load the forcefield class from a different file
-            _tmp  = __import__(options['-ff'].value.lower())
-            options['ForceField']  = getattr(_tmp,options['-ff'].value.lower())()
-        except:
-            # Try to load the forcefield class from the current file
-            options['ForceField']  = globals()[options['-ff'].value.lower()]()
-    except:
-        logging.error("Forcefield '%s' can not be found."%(options['-ff']))
-        sys.exit()
+    # try:
+    #     try:
+    #         # Try to load the forcefield class from a different file
+    #         _tmp  = __import__(options['-ff'].value.lower())
+    #         options['ForceField']  = getattr(_tmp,options['-ff'].value.lower())()
+    #     except:
+    #         # Try to load the forcefield class from the current file
+    #         options['ForceField']  = globals()[options['-ff'].value.lower()]()
+    # except:
+    #     logging.error("Forcefield '%s' can not be found."%(options['-ff']))
+    #     sys.exit()
+
     # Process the raw options from the command line
     # Boolean options are set to more intuitive variables
     options['Collagen']            = options['-collagen']
@@ -521,13 +495,12 @@ def option_parser(args,options,lists,version=0):
     
     logging.info("Residues at chain brakes will%s be charged"%((not options['ChargesAtBreaks']) and " not" or ""))
 
-    if options.has_key('ForceField'):
+    if 'ForceField' in options:
         logging.info("The %s forcefield will be used."%(options['ForceField'].name))
     else:
         logging.error("Forcefield '%s' has not been implemented."%(options['-ff']))
         sys.exit()
-    
-    if options['ExtendedDihedrals']:  
+    if options['ExtendedDihedrals'].value:  
         logging.info('Dihedrals will be used for extended regions. (Elastic bonds may be more stable)')
     else:                  
         logging.info('Local elastic bonds will be used for extended regions.')
@@ -814,7 +787,7 @@ class CoarseGrained:
 # coordinates and the list of ids mapped to this bead
 def aver(b):
     mwx,ids = zip(*[((m*x,m*y,m*z),i) for m,(x,y,z),i in b])              # Weighted coordinates     
-    tm  = sum(zip(*b)[0])                                                 # Sum of weights           
+    tm  = sum([m[0] for m in b])                                                 # Sum of weights           
     return [sum(i)/tm for i in zip(*mwx)],ids                             # Centre of mass           
 
 # Return the CG beads for an atomistic residue, using the mapping specified above
@@ -999,10 +972,12 @@ def call_dssp(chain,atomlist,executable='dsspcmbi'):
     except OSError:
         logging.error("A problem occured calling %s."%executable)
         sys.exit(1)
+
     for atom in atomlist: 
         if atom[0][:2] == 'O1': atom=('O',)+atom[1:]
-        if atom[0][0]!='H' and atom[0][:2]!='O2': p.stdin.write(pdbOut(atom))
-    p.stdin.write('TER\n')
+        if atom[0][0]!='H' and atom[0][:2]!='O2': 
+            p.stdin.write(pdbOut(atom).encode())
+    p.stdin.write('TER\n'.encode())
     data = p.communicate()
     p.wait()
     main,ss = 0,''
@@ -1219,41 +1194,6 @@ class martini22dna:
             'excl'  : [(0, 2), (1, 0),(2, 1)],
             'pair'  : [],
         }
-
-## FOR PLOTTING ONLY
-#        # DNA BACKBONE PARAMETERS
-#        self.dna_bb = {
-#            'atom'  : FUNC.spl("Q0 SN0 SC2"),
-#            'bond'  : [(1,  0.360, 30000),          
-#                       (1,  0.400, 10000),          
-#                       (1,  0.200, 50000),          
-#                       (1,  0.355, 10000)],         
-#            'angle' : [(2,  115.0,  85),           
-#                       (2,  102.0, 105),           
-#                       (2,  110.0,  60)],           
-#            'dih'   : [(2,  100.0,  1),           
-#                       (2, -120.0,  5),           
-#                       (2,  140.0,  5)],          
-#            'excl'  : [(), (), ()],
-#        }
-#        # DNA BACKBONE CONNECTIVITY
-#        self.dna_con  = {
-#            'bond'  : [(0, 1),
-#                       (0, 2),
-#                       (1, 2),
-#                       (2, 0)],
-#            'angle' : [(0, 1, 2),
-#                       (1, 2, 0),
-#                       (2, 0, 1)],
-#            'dih'   : [(0, 1, 2, 0),
-#                       (1, 2, 0, 1),
-#                       (2, 0, 1, 2)],
-#            'excl'  : [(0, 2), (1, 0), (2, 1)],
-#        }
-
-        # For bonds, angles, and dihedrals the first parameter should always 
-        # be the type. It is pretty annoying to check the connectivity from 
-        # elsewhere so we update these one base at a time.
 
         # ADENINE
         self.bases = {
@@ -1550,161 +1490,6 @@ class martini22dna:
                    []],                                                                     # PAIRS                     
         })
 
-## FOR PLOTTING ONLY
-#        # ADENINE
-#        self.bases = {
-#            "DA": [FUNC.spl("TNa TNa TP1 TNa"),                                      
-#            #     TYPE   EQUIL   OPTS TYPE   EQUIL   OPTS TYPE   EQUIL   OPTS
-#                   [(1,  0.330, 30000), (1,  0.229, 30000), (1,  0.266, 30000),             # BONDS BB3-SC1 bond lengthened by 0.030 nm.
-#                    (1,  0.325, 30000), (1,  0.288, 30000), (1,  0.162, 30000),],     
-#                   [(2,   93.0,   250), (2,  160.0,   200), (2,  140.0,   200),             # ANGLES
-#                    (2,   85.0,   200), (2,  148.0,   350), (2,  125.0,   200),
-#                    (2,   74.0,   200), (2,   98.0,   200)],                           
-#                   [(2,    0.0,     1), (2,    0.0,     1), (2,    0.0,     1),
-#                    (2,    0.0,     1), (2,    0.0,     1), (2,    0.0,     1),
-#                    (2,    0.0,     1), (2,    0.0,     1), (2,    0.0,     1),
-#                    (2,    0.0,     1), (2,    0.0,     1), (2,    0.0,     1),
-#                    (2,    0.0,     1), (2,    0.0,     1)],
-#                   [(2,    0.0,   500)],                                                    # IMPROPERS 
-#                   [],                                                                      # VSITES
-#                   [(), (), (), (), (), (), (), (), (), (), (), (), (), ()]],               # EXCLUSIONS
-#            }
-#        self.base_connectivity = {
-#            "DA": [[(2, 3),             (3, 4),             (4, 5),                         # BONDS
-#                    (4, 6),             (5, 6),             (6, 3)],   
-#                   [(1, 2, 3),          (2, 3, 4),          (2, 3, 6),                      # ANGLES
-#                    (3, 4, 5),          (3, 2, 7),          (4, 3, 6),
-#                    (4, 5, 6),          (5, 6, 3)], 
-#                   [(0, 1, 2, 3),       (0, 2, 3, 4),       (0, 2, 3, 6),                  # DIHEDRALS        
-#                    (1, 2, 3, 4),       (1, 2, 3, 6),       (2, 8, 9,10),
-#                    (3, 2, 7, 8),       (3, 2, 7, 9),       (3, 2, 7,10),
-#                    (3, 7, 8,10),       (3, 8, 9,10),       (4, 2, 7, 8),
-#                    (7, 2, 3, 4),       (7, 2, 3, 6)],
-#                   [(3, 4, 5, 6)],                                                          # IMPROPERS
-#                   [],                                                                      # VSITES
-#                   [(0, 3),             (0, 4),             (0, 5),                         # EXCLUSIONS
-#                    (0, 6),             (1, 3),             (1, 4),
-#                    (1, 5),             (1, 6),             (2, 3),
-#                    (2, 4),             (2, 5),             (2, 6),
-#                    (3, 5),             (4, 6)]],                                           
-#            }
-#
-#        # CYTOSINE
-#        self.bases.update({
-#            "DC": [FUNC.spl("TNa TPa TPd"),                                                     
-#            #     TYPE   EQUIL   OPTS TYPE   EQUIL   OPTS TYPE   EQUIL   OPTS
-#                   [(1,  0.290, 30000), (1,  0.220, 30000), (1,  0.285, 30000),             # BONDS BB3-SC1 bond lenghtened by 0.020 nm.
-#                    (1,  0.268, 30000),],
-#                   [(2,   93.0,   200), (2,  108.0,   250), (2,  170.0,   350),             # ANGLES
-#                    (2,  180.0,     1), (2,   62.0,   200), (2,   71.0,   200), 
-#                    (2,   47.0,   200), (2,  100.0,     1), (2,    0.0,     1),
-#                    (2,    0.0,     1), (2,    0.0,     1), (2,    0.0,     1)],
-#                   [(2,    0.0,     1), (2,    0.0,     1), (2,    0.0,     1),
-#                    (2,    0.0,     1), (2,    0.0,     1), (2,    0.0,     1),
-#                    (2,    0.0,     1), (2,    0.0,     1), (2,    0.0,     1),
-#                    (2,    0.0,     1), (2,    0.0,     1), (2,    0.0,     1),
-#                    (2,    0.0,     1), (2,    0.0,     1), (2,    0.0,     1),
-#                    (2,    0.0,     1)],
-#                   [],                                                                      # IMPROPERS
-#                   [],                                                                      # VSITES
-#                   [(), (), (), (), (), (), (), (), ()]],                                   # EXCLUSIONS
-#        })
-#        self.base_connectivity.update({
-#            "DC": [[(2, 3),           (3, 4),             (4, 5),                         # BONDS
-#                    (5, 3)],
-#                   [(1, 2, 3),        (2, 3, 4),          (2, 3, 5),                      # ANGLES
-#                    (3, 2, 6),        (3, 4, 5),          (4, 3, 5),
-#                    (4, 5, 3),        (1, 3, 5),          (1, 5, 3),
-#                    (2, 3, 6),        (2, 1, 3),          (2, 1, 5)],
-#                   [(0, 1, 2, 3),       (0, 2, 3, 4),       (0, 2, 3, 5),                  # DIHEDRALS        
-#                    (1, 2, 3, 4),       (1, 2, 3, 5),       (2, 7, 8, 9),
-#                    (3, 2, 6, 7),       (3, 2, 6, 8),       (3, 2, 6, 9),
-#                    (3, 6, 7, 9),       (3, 7, 8, 9),       (4, 2, 6, 7),
-#                    (6, 2, 3, 4),       (6, 2, 3, 5),       (2, 1, 3, 5),
-#                    (2, 1, 5, 3)],
-#                   [],                                                                    # IMPROPERS
-#                   [],                                                                    # VSITES
-#                   [(0, 3),             (0, 4),             (0, 5),                         # EXCLUSIONS
-#                    (1, 3),             (1, 4),             (1, 5),             
-#                    (2, 3),             (2, 4),             (2, 5)]],                                           
-#        })
-#
-#        # GUANINE
-#        self.bases.update({
-#            "DG": [FUNC.spl("TNa TPd TP1 TNa"),
-#            #     TYPE   EQUIL   OPTS TYPE   EQUIL   OPTS TYPE   EQUIL   OPTS
-#                   [(1,  0.300, 30000), (1,  0.295, 30000), (1,  0.295, 30000),             # BONDS BB3-SC1 bond stays the same.
-#                    (1,  0.390, 30000), (1,  0.285, 30000), (1,  0.161, 30000),],     
-#                   [(2,   95.0,   250), (2,  137.0,   300), (2,  128.0,   250),             # ANGLES
-#                    (2,   69.0,   200), (2,  145.0,   350), (2,  125.0,   200),
-#                    (2,   84.0,   200), (2,   94.0,   200)],                           
-#                   [(2,    0.0,     1), (2,    0.0,     1), (2,    0.0,     1),
-#                    (2,    0.0,     1), (2,    0.0,     1), (2,    0.0,     1),
-#                    (2,    0.0,     1), (2,    0.0,     1), (2,    0.0,     1),
-#                    (2,    0.0,     1), (2,    0.0,     1), (2,    0.0,     1),
-#                    (2,    0.0,     1), (2,    0.0,     1)],
-#                   [(2,    0.0,   150)],                                                    # IMPROPERS 
-#                   [],                                                                      # VSITES
-#                   [(), (), (), (), (), (), (), (), (), (), (), (), (), ()]],               # EXCLUSIONS
-#        })
-#        self.base_connectivity.update({
-#            "DG": [[(2, 3),             (3, 4),             (4, 5),                         # BONDS
-#                    (4, 6),             (5, 6),             (6, 3)],
-#                   [(1, 2, 3),          (2, 3, 4),          (2, 3, 6),                      # ANGLES
-#                    (3, 4, 5),          (3, 2, 7),          (4, 3, 6), 
-#                    (4, 5, 6),          (5, 6, 3)],
-#                   [(0, 1, 2, 3),       (0, 2, 3, 4),       (0, 2, 3, 6),                  # DIHEDRALS        
-#                    (1, 2, 3, 4),       (1, 2, 3, 6),       (2, 8, 9,10),
-#                    (3, 2, 7, 8),       (3, 2, 7, 9),       (3, 2, 7,10),
-#                    (3, 7, 8,10),       (3, 8, 9,10),       (4, 2, 7, 8),
-#                    (7, 2, 3, 4),       (7, 2, 3, 6)],
-#                   [(3, 4, 5, 6)],                                                          # IMPROPERS
-#                   [],                                                                      # VSITES
-#                   [(0, 3),             (0, 4),             (0, 5),                         # EXCLUSIONS
-#                    (0, 6),             (1, 3),             (1, 4),
-#                    (1, 5),             (1, 6),             (2, 3),
-#                    (2, 4),             (2, 5),             (2, 6),
-#                    (3, 5),             (4, 6)]],                                           
-#        })
-#
-#        # THYMINE
-#        self.bases.update({
-#            "DT": [FUNC.spl("TNa TP1 TPa"),
-#            #     TYPE   EQUIL   OPTS TYPE   EQUIL   OPTS TYPE   EQUIL   OPTS
-#                   [(1,  0.310, 30000), (1,  0.217, 30000), (1,  0.322, 30000),             # BONDS BB3-SC1 bond lengthened by 0.040 nm.
-#                    (1,  0.265, 30000),],
-#                   [(2,   93.0,   250), (2,  108.0,   350), (2,  165.0,   550),             # ANGLES
-#                    (2,  165.0,   400), (2,   55.0,   200), (2,   83.0,   200),
-#                    (2,   42.0,   200), (2,    0.0,     1), (2,    0.0,     1),
-#                    (2,    0.0,     1), (2,    0.0,     1)],
-#                   [(2,    0.0,     1), (2,    0.0,     1), (2,    0.0,     1),
-#                    (2,    0.0,     1), (2,    0.0,     1), (2,    0.0,     1),
-#                    (2,    0.0,     1), (2,    0.0,     1), (2,    0.0,     1),
-#                    (2,    0.0,     1), (2,    0.0,     1), (2,    0.0,     1),
-#                    (2,    0.0,     1), (2,    0.0,     1), (2,    0.0,     1)],
-#                   [],                                                                      # IMPROPERS
-#                   [],                                                                      # VSITES
-#                   [(), (), (), (), (), (), (), (), ()]],                                   # EXCLUSIONS
-#        })
-#        self.base_connectivity.update({
-#            "DT": [[(2, 3),           (3, 4),             (4, 5),                         # BONDS
-#                    (5, 3)],
-#                   [(1, 2, 3),        (2, 3, 4),          (2, 3, 5),                      # ANGLES
-#                    (3, 2, 6),        (3, 4, 5),          (4, 3, 5), 
-#                    (4, 5, 3),        (2, 3, 6),          (1, 3, 5),
-#                    (2, 1, 3),        (2, 1, 5)],
-#                   [(0, 1, 2, 3),       (0, 2, 3, 4),       (0, 2, 3, 5),                  # DIHEDRALS        
-#                    (1, 2, 3, 4),       (1, 2, 3, 5),       (2, 7, 8, 9),
-#                    (3, 2, 6, 7),       (3, 2, 6, 8),       (3, 2, 6, 9),
-#                    (3, 6, 7, 9),       (3, 7, 8, 9),       (4, 2, 6, 7),
-#                    (6, 2, 3, 4),       (6, 2, 3, 5),       (2, 1, 3, 5)],
-#                   [],                                                                    # IMPROPERS
-#                   [],                                                                    # VSITES
-#                   [(0, 3),             (0, 4),             (0, 5),                         # EXCLUSIONS
-#                    (1, 3),             (1, 4),             (1, 5),             
-#                    (2, 3),             (2, 4),             (2, 5)]],                                           
-#        })
-
 
         #----+----------------+
         ## D | SPECIAL BONDS  |
@@ -1735,7 +1520,7 @@ class martini22dna:
         self.bbBeadDictS  = dict([(i,hash(bbss,self.bbtyp[i])) for i in self.bbtyp.keys()])                        
 
         # combine the connectivity records for different molecule types
-        self.connectivity = dict(self.base_connectivity.items() + self.aa_connectivity.items())
+        self.connectivity = {**self.base_connectivity, **self.aa_connectivity}
         # XXX No need to do that, let's just use separate for DNA for now
         
         ## BB BOND TYPE ##                                                                          
@@ -1811,7 +1596,10 @@ class martini22dna:
             b1 = self.bbBondDictS.get(r[0],self.bbBondDictD).get(ss[0],self.bbBondDictD.get(ss[0]))
             b2 = self.bbBondDictS.get(r[1],self.bbBondDictD).get(ss[1],self.bbBondDictD.get(ss[1]))
             # Determine which parameters to use for the bond
-            return ( (b1[0]+b2[0])/2, min(b1[1],b2[1]) )
+            if (b1[1] is not None) and (b2[1] is not None):
+                return ( (b1[0]+b2[0])/2, min(b1[1],b2[1]) )
+            else:
+                return ( (b1[0]+b2[0])/2, None )
     
     def bbGetAngle(self,r,ca,ss):
         # Check is it DNA residue
@@ -1873,702 +1661,8 @@ class martini22dna:
         logging.warning('This is a version of martinize for DNA and should NOT be used for proteins.')
         logging.warning('#####################################################################################')
         pass
-################################
-## 6 # FORCE FIELD PARAMETERS ##  -> @FF <-
-################################
-
-# New martini 2.2 parameters.
-# Changed: 
-#   Unstructured Pro backbone bead
-#   Proline side chains
-#   Phe sidechain
-#   Trp sidechain
-#   Helix BB-bonds to constraint      
-
-class elnedyn22dna:
-    def __init__(self):
-
-        # parameters are defined here for the following (protein) forcefields:
-        self.name = 'elnedyn22dna'
-        
-        # Charged types:
-        self.charges = {"Qd":1, "Qa":-1, "SQd":1, "SQa":-1, "RQd":1, "AQa":-1}                                                           #@#
-        self.bbcharges = {"BB1":-1}                                                                                                      #@#
-        
-        
-        #----+---------------------+
-        ## A | BACKBONE PARAMETERS |
-        #----+---------------------+
-        #
-        # bbss  lists the one letter secondary structure code
-        # bbdef lists the corresponding default backbone beads
-        # bbtyp lists the corresponding residue specific backbone beads
-        #
-        # bbd   lists the structure specific backbone bond lengths
-        # bbkb  lists the corresponding bond force constants
-        #
-        # bba   lists the structure specific angles
-        # bbka  lists the corresponding angle force constants
-        #
-        # bbd   lists the structure specific dihedral angles
-        # bbkd  lists the corresponding force constants
-        #
-        # -=NOTE=- 
-        #  if the secondary structure types differ between bonded atoms
-        #  the bond is assigned the lowest corresponding force constant 
-        #
-        # -=NOTE=-
-        # if proline is anywhere in the helix, the BBB angle changes for 
-        # all residues
-        #
-        
-        ###############################################################################################
-        ## BEADS ##                                                                         #                 
-        #                              F     E     H     1     2     3     T     S     C    # SS one letter   
-        self.bbdef    =    spl(" N0   Nda    N0    Nd    Na   Nda   Nda    P5    P5")  # Default beads   #@#
-        self.bbtyp    = {                                                                   #                 #@#
-                    "ALA": spl(" C5    N0    C5    N0    N0    N0    N0    P4    P4"), # ALA specific    #@#
-                    "PRO": spl(" C5    N0    C5    N0    Na    N0    N0    P4    P4"), # PRO specific    #@#
-                    "HYP": spl(" C5    N0    C5    N0    N0    N0    N0    P4    P4")  # HYP specific    #@#
-        }                                                                                   #                 #@#
-        ## BONDS ##                                                                         #                 
-        self.bbldef   =             (.365, .350, .350, .350, .350, .350, .350, .350, .350)   # BB bond lengths #@#
-        self.bbkb     =             (1250, 1250, 1250, 1250, 1250, 1250,  500,  400,  400)   # BB bond kB      #@#
-        self.bbltyp   = {}                                                                  #                 #@#
-        self.bbkbtyp  = {}                                                                  #                 #@#
-        ## ANGLES ##                                                                        #                 
-        self.bbadef   =             ( 119.2,134,   96,   96,   96,   96,  100,  130,  127)  # BBB angles      #@#
-        self.bbka     =             ( 150,   25,  700,  700,  700,  700,   25,   25,   25)   # BBB angle kB    #@#
-        self.bbatyp   = {                                                                   #                 #@#
-               "PRO":               ( 119.2,134,   98,   98,   98,   98,  100,  130,  127), # PRO specific    #@#
-               "HYP":               ( 119.2,134,   98,   98,   98,   98,  100,  130,  127)  # PRO specific    #@#
-        }                                                                                   #                 #@#
-        self.bbkatyp  = {                                                                   #                 #@#
-               "PRO":               ( 150,   25,  100,  100,  100,  100,   25,   25,   25), # PRO specific    #@#
-               "HYP":               ( 150,   25,  100,  100,  100,  100,   25,   25,   25)  # PRO specific    #@#
-        }                                                                                   #                 #@#
-        ## DIHEDRALS ##                                                                     #                 
-        self.bbddef   =             ( 90.7,   0, -120, -120, -120, -120)                    # BBBB dihedrals  #@#
-        self.bbkd     =             ( 100,   10,  400,  400,  400,  400)                    # BBBB kB         #@#
-        self.bbdmul   =             (   1,    1,    1,    1,    1,    1)                    # BBBB mltplcty   #@#
-        self.bbdtyp   = {}                                                                  #                 #@#
-        self.bbkdtyp  = {}                                                                  #                 #@#
-                                                                                            #                 
-        ###############################################################################################               
-        
-        # Some Forcefields use the Ca position to position the BB-bead (me like!)
-        # martini 2.1 doesn't
-        self.ca2bb = False 
-        
-        # BBS angle, equal for all ss types                                                         
-        # Connects BB(i-1),BB(i),SC(i), except for first residue: BB(i+1),BB(i),SC(i)               
-        #                 ANGLE   Ka                                                                
-        self.bbsangle =      [   100,  25]                                                               #@#
-        
-        # Bonds for extended structures (more stable than using dihedrals)                          
-        #               LENGTH FORCE                                                                
-        self.ebonds   = {                                                                                #@#
-               'short': [ .640, 2500],                                                              #@#
-               'long' : [ .970, 2500]                                                               #@#
-        }                                                                                           #@#
-        
-        
-        #----+-----------------------+
-        ## B | SIDE CHAIN PARAMETERS |
-        #----+-----------------------+
-        
-        # To be compatible with Elnedyn, all parameters are explicitly defined, even if they are double.
-        self.sidechains = {
-            #RES#   BEADS                       BONDS                                                   ANGLES                      DIHEDRALS
-            #                                   BB-SC          SC-SC                                    BB-SC-SC  SC-SC-SC
-        'TRP': [spl("SC4 SNd SC5 SC5"), [(0.255,73000), (0.220,None), (0.250,None), (0.280,None), (0.255,None), (0.35454,None)], [(142,30), (143,20), (104,50)], [(180,200)]],
-        'TYR': [spl("SC4 SC4 SP1"),     [(0.335, 6000), (0.335,6000), (0.240,None), (0.310,None), (0.310,None)], [(70,100), (130, 50)]],
-        'PHE': [spl("SC5 SC5 SC5"),     [(0.340, 7500), (0.340,7500), (0.240,None), (0.240,None), (0.240,None)], [(70,100), (125,100)]],
-        'HIS': [spl("SC4 SP1 SP1"),     [(0.195,94000), (0.193,None), (0.295,None), (0.216,None)],               [(135,100),(115, 50)]],
-        'HIH': [spl("SC4 SP1 SQd"),     [(0.195,94000), (0.193,None), (0.295,None), (0.216,None)],               [(135,100),(115, 50)]],
-        'ARG': [spl("N0 Qd"),           [(0.250,12500), (0.350,6200)],                                           [(150,15)]],
-        'LYS': [spl("C3 Qd"),           [(0.250,12500), (0.300,9700)],                                           [(150,20)]],
-        'CYS': [spl("C5"),              [(0.240, None)]],
-        'ASP': [spl("Qa"),              [(0.255, None)]],
-        'GLU': [spl("Qa"),              [(0.310, 2500)]],
-        'ILE': [spl("C1"),              [(0.225,13250)]],
-        'LEU': [spl("C1"),              [(0.265, None)]],
-        'MET': [spl("C5"),              [(0.310, 2800)]],
-        'ASN': [spl("P5"),              [(0.250, None)]],
-        'PRO': [spl("C3"),              [(0.190, None)]],
-        'GLN': [spl("P4"),              [(0.300, 2400)]],
-        'SER': [spl("P1"),              [(0.195, None)]],
-        'THR': [spl("P1"),              [(0.195, None)]],
-        'VAL': [spl("C2"),              [(0.200, None)]],
-        'GLY': [],
-        'ALA': [],
-            }
-        
-        # Not all (eg Elnedyn) forcefields use backbone-backbone-sidechain angles and BBBB-dihedrals.
-        self.UseBBSAngles          = False 
-        self.UseBBBBDihedrals      = False
-
-        # Martini 2.2p has polar and charged residues with seperate charges.
-        self.polar   = []
-        self.charged = []
-
-        # If masses or charged diverge from standard (45/72 and -/+1) they are defined here.
-        self.mass_charge = {
-        #RES   MASS               CHARGE
-        }
-
-        # Defines the connectivity between between beads
-        self.aa_connectivity = {
-        #RES       BONDS                                   ANGLES             DIHEDRALS              V-SITE
-        "TRP":     [[(0, 1), (1, 2), (2, 4), (4, 3), (3, 1), (1, 4)],[(0, 1, 2), (0, 1, 4), (0, 1, 3)],[(1, 2, 3, 4)]],
-        "TYR":     [[(0, 1), (0, 2), (1, 2), (1, 3), (2, 3)],        [(0, 1, 2), (0, 1, 3)]],
-        "PHE":     [[(0, 1), (0, 2), (1, 2), (1, 3), (2, 3)],        [(0, 1, 2), (0, 1, 3)]],
-        "HIS":     [[(0, 1), (1, 2), (1, 3), (2, 3)],        [(0, 1, 2), (0, 1, 3)]],
-        "HIH":     [[(0, 1), (1, 2), (1, 3), (2, 3)],        [(0, 1, 2), (0, 1, 3)]],
-        "GLN":     [[(0,1)]],
-        "ASN":     [[(0,1)]],
-        "SER":     [[(0,1)]],
-        "THR":     [[(0,1)]],
-        "ARG":     [[(0,1),(1,2)],                         [(0,1,2)]],
-        "LYS":     [[(0,1),(1,2)],                         [(0,1,2)]],
-        "ASP":     [[(0,1)]],
-        "GLU":     [[(0,1)]],
-        "CYS":     [[(0,1)]],
-        "ILE":     [[(0,1)]],
-        "LEU":     [[(0,1)]],
-        "MET":     [[(0,1)]],
-        "PRO":     [[(0,1)]],
-        "HYP":     [[(0,1)]],
-        "VAL":     [[(0,1)]],
-        "ALA":     [],
-        "GLY":     [],
-        }
-        
-        #----+----------------+
-        ## C | DNA/RNA bases  |
-        #----+----------------+
-
-        # DNA BACKBONE PARAMETERS
-        self.dna_bb = {
-            'atom'  : spl("Q0 SN0 SC2"),
-            'bond'  : [(1,  0.360, 20000),          
-                       (1,  0.198, 80000),          
-                       (1,  0.353, 10000)],         
-            'angle' : [(2,  110.0, 200),            
-                       (2,  102.0, 150),           
-                       (2,  106.0,  75)],           
-            'dih'   : [(2,   95.0,  25),
-                       (1,  180.0,   2, 3),
-                       (9,   85.0,   2, 2,  9,  160.0,  2, 3)],
-            'excl'  : [(), (), ()],
-            'pair'  : [],
-        }
-        # DNA BACKBONE CONNECTIVITY
-        self.dna_con  = {
-            'bond'  : [(0, 1),
-                       (1, 2),
-                       (2, 0)],
-            'angle' : [(0, 1, 2),
-                       (1, 2, 0),
-                       (2, 0, 1)],
-            'dih'   : [(0, 1, 2, 0),
-                       (1, 2, 0, 1),
-                       (2, 0, 1, 2)],
-            'excl'  : [(0, 2), (1, 0),(2, 1)],
-            'pair'  : [],
-        }
-
-## FOR PLOTTING ONLY
-#        # DNA BACKBONE PARAMETERS
-#        self.dna_bb = {
-#            'atom'  : FUNC.spl("Q0 SN0 SC2"),
-#            'bond'  : [(1,  0.360, 30000),          
-#                       (1,  0.400, 10000),          
-#                       (1,  0.200, 50000),          
-#                       (1,  0.355, 10000)],         
-#            'angle' : [(2,  115.0,  85),           
-#                       (2,  102.0, 105),           
-#                       (2,  110.0,  60)],           
-#            'dih'   : [(2,  100.0,  1),           
-#                       (2, -120.0,  5),           
-#                       (2,  140.0,  5)],          
-#            'excl'  : [(), (), ()],
-#        }
-#        # DNA BACKBONE CONNECTIVITY
-#        self.dna_con  = {
-#            'bond'  : [(0, 1),
-#                       (0, 2),
-#                       (1, 2),
-#                       (2, 0)],
-#            'angle' : [(0, 1, 2),
-#                       (1, 2, 0),
-#                       (2, 0, 1)],
-#            'dih'   : [(0, 1, 2, 0),
-#                       (1, 2, 0, 1),
-#                       (2, 0, 1, 2)],
-#            'excl'  : [(0, 2), (1, 0), (2, 1)],
-#        }
-
-        # RNA BACKBONE PARAMETERS
-        self.rna_bb = {
-            'atom'  : spl("Q0 N0 C2"),
-            'bond'  : [(0.120,5000),(0.220,5000),(0.320,5000)],
-            'angle' : [(10.0, 100), (20.0, 100), (30.0, 100)],
-            'dih'   : [(100, 10), (100, 10), (100, 10),],
-            'excl'  : [],
-        }
-        # RNA BACKBONE CONNECTIVITY
-        self.rna_con  = {
-            'bond'  : [(0,1),(1,2),(2,0)],
-            'angle' : [(0,1,2),(1,2,0),(2,0,1)],
-            'dih'   : [(0,1,2,0),(1,2,0,1),(2,0,1,2)],
-            'excl'  : [],
-        }
-
-        # For bonds, angles, and dihedrals the first parameter should always 
-        # be the type. It is pretty annoying to check the connectivity from 
-        # elsewhere so we update these one base at a time.
-
-        # ADENINE
-        self.bases = {
-            "DA": [spl("TN0 TA2 TA3 TNa"),                                      
-            #     TYPE   EQUIL   OPTS TYPE   EQUIL   OPTS TYPE   EQUIL   OPTS
-#                   [(1,  0.348, 20000), (1,  0.229,  None), (1,  0.266,  None),             # BONDS BB3-SC1 bond lengthened by 0.048 nm.
-                   [(1,  0.300, 30000), (1,  0.229,  None), (1,  0.266,  None),             # BONDS BB3-SC1 bond lengthened by 0.048 nm.
-                    (1,  0.326, 20000), (1,  0.288,  None), (1,  0.162,  None),],     
-                   [(2,   94.0,   250), (2,  160.0,   200), (2,  140.0,   200),             # ANGLES
-                    (1,   85.0,   200), (2,  158.0,   200), (1,  125.0,   200),
-                    (1,   74.0,   200), (1,   98.0,   200)],                           
-                   [(2,  -90.0,    20), (2, -116.0,   0.5), (2,   98.0,    15)],            # DIHEDRALS
-                   [],                                                                      # IMPROPERS 
-                   [],                                                                      # VSITES
-                   [(), (), (), (), (), (), (), (), (), (), (), (), (), ()],                # EXCLUSIONS
-                   []],                                                                     # PAIRS
-            }
-        self.base_connectivity = {
-            "DA": [[(2, 3),             (3, 4),             (4, 5),                         # BONDS
-                    (4, 6),             (5, 6),             (6, 3)],   
-                   [(1, 2, 3),          (2, 3, 4),          (2, 3, 6),                      # ANGLES
-                    (3, 4, 5),          (3, 2, 7),          (4, 3, 6),
-                    (4, 5, 6),          (5, 6, 3)], 
-                   [(0, 1, 2, 3),       (1, 2, 3, 4),       (1, 2, 3, 6),],                # DIHEDRALS        
-                   [],                                                                      # IMPROPERS
-                   [],                                                                      # VSITES
-                   [(0, 3),             (0, 4),             (0, 5),                         # EXCLUSIONS
-                    (0, 6),             (1, 3),             (1, 4),
-                    (1, 5),             (1, 6),             (2, 3),
-                    (2, 4),             (2, 5),             (2, 6),
-                    (3, 5),             (4, 6)],
-                   []],                                                                     # PAIRS                     
-            }
-
-        # CYTOSINE
-        self.bases.update({
-            "DC": [spl("TN0 TY2 TY3"),                                                     
-            #     TYPE   EQUIL   OPTS TYPE   EQUIL   OPTS TYPE   EQUIL   OPTS
-#                   [(1,  0.303, 20000), (1,  0.220,  None), (1,  0.285,  None),             # BONDS BB3-SC1 bond lenghtened by 0.033 nm.
-                   [(1,  0.270, 30000), (1,  0.220,  None), (1,  0.285,  None),             # BONDS BB3-SC1 bond lenghtened by 0.033 nm.
-                    (1,  0.268,  None),],
-                   [(2,   95.0,   210), (2,   95.0,   300), (1,  150.0,   500),             # ANGLES
-                    (1,  180.0,    30), (1,   61.0,   200), (1,   71.0,   200), 
-                    (1,   47.0,   200)],
-                   [(2,  -78.0,    25), (2,  -90.0,    20), (2, -142.0,    50)],            # DIHEDRALS
-                   #[(2,  -78.0,    25), (2, -108.0,    10), (2,   40.0,    15)],            # DIHEDRALS
-                   [],                                                                      # IMPROPERS
-                   [],                                                                      # VSITES
-                   [(), (), (), (), (), (), (), (), ()],                                    # EXCLUSIONS
-                   []],                                                                     # PAIRS                     
-        })
-        self.base_connectivity.update({
-            "DC": [[(2, 3),           (3, 4),             (4, 5),                         # BONDS
-                    (5, 3)],
-                   [(1, 2, 3),        (2, 3, 4),          (1, 3, 5),                      # ANGLES
-                    (3, 2, 6),        (3, 4, 5),          (4, 3, 5),
-                    (4, 5, 3)],
-                   [(0, 1, 2, 3),     (1, 2, 3, 4),       (2, 1, 3, 5)],                  # DIHEDRALS
-                   [],                                                                    # IMPROPERS
-                   [],                                                                    # VSITES
-                   [(0, 3),             (0, 4),             (0, 5),                         # EXCLUSIONS
-                    (1, 3),             (1, 4),             (1, 5),             
-                    (2, 3),             (2, 4),             (2, 5)],                                           
-                   []],                                                                     # PAIRS                     
-        })
-
-        # GUANINE
-        self.bases.update({
-            "DG": [spl("TN0 TG2 TG3 TNa"),
-            #     TYPE   EQUIL   OPTS TYPE   EQUIL   OPTS TYPE   EQUIL   OPTS
-#                   [(1,  0.353, 20000), (1,  0.295,  None), (1,  0.295,  None),             # BONDS BB3-SC1 bond lengthened by 0.053 nm.
-                   [(1,  0.300, 30000), (1,  0.295,  None), (1,  0.295,  None),             # BONDS BB3-SC1 bond lengthened by 0.053 nm.
-                    (1,  0.389, 20000), (1,  0.285,  None), (1,  0.161,  None),],     
-                   [(2,   94.5,   250), (2,  137.0,   300), (2,  130.0,   250),             # ANGLES
-                    (1,   69.5,   200), (2,  157.0,   150), (1,  125.0,   200),
-                    (1,   84.0,   200), (1,   94.0,   200)],                           
-                   [(2,  -90.0,    20), (2, -117.0,     1), (2,   92.0,    15)],            # DIHEDRALS  
-                   [],                                                                      # IMPROPERS 
-                   [],                                                                      # VSITES
-                   [(), (), (), (), (), (), (), (), (), (), (), (), (), ()],                # EXCLUSIONS
-                   []],                                                                     # PAIRS                     
-        })
-        self.base_connectivity.update({
-            "DG": [[(2, 3),             (3, 4),             (4, 5),                         # BONDS
-                    (4, 6),             (5, 6),             (6, 3)],
-                   [(1, 2, 3),          (2, 3, 4),          (2, 3, 6),                      # ANGLES
-                    (3, 4, 5),          (3, 2, 7),          (4, 3, 6), 
-                    (4, 5, 6),          (5, 6, 3)],
-                   [(0, 1, 2, 3),       (1, 2, 3, 4),       (1, 2, 3, 6),],                 # DIHEDRALS        
-                   [],                                                                      # IMPROPERS
-                   [],                                                                      # VSITES
-                   [(0, 3),             (0, 4),             (0, 5),                         # EXCLUSIONS
-                    (0, 6),             (1, 3),             (1, 4),
-                    (1, 5),             (1, 6),             (2, 3),
-                    (2, 4),             (2, 5),             (2, 6),
-                    (3, 5),             (4, 6)],                                           
-                   []],                                                                     # PAIRS                     
-        })
-
-        # THYMINE
-        self.bases.update({
-            "DT": [spl("TN0 TT2 TT3"),
-            #     TYPE   EQUIL   OPTS TYPE   EQUIL   OPTS TYPE   EQUIL   OPTS
-#                   [(1,  0.326, 20000), (1,  0.217,  None), (1,  0.322,  None),             # BONDS BB3-SC1 bond lengthened by 0.056 nm.
-                   [(1,  0.270, 30000), (1,  0.217,  None), (1,  0.322,  None),             # BONDS BB3-SC1 bond lengthened by 0.056 nm.
-                    (1,  0.265,  None),],
-                   [(2,   92.0,   220), (2,  107.0,   300), (1,  145.0,   400),             # ANGLES
-                    (1,  180.0,    30), (1,   55.0,   100), (1,   83.0,   100),
-                    (1,   42.0,   100)],
-                   [(2,  -75.0,    40), (2, -110.0,    15), (2, -145.0,    65)],            # DIHEDRALS
-                   [],                                                                      # IMPROPERS
-                   [],                                                                      # VSITES
-                   [(), (), (), (), (), (), (), (), ()],                                    # EXCLUSIONS
-                   []],                                                                     # PAIRS                     
-        })
-        self.base_connectivity.update({
-            "DT": [[(2, 3),           (3, 4),             (4, 5),                         # BONDS
-                    (5, 3)],
-                   [(1, 2, 3),        (2, 3, 4),          (1, 3, 5),                      # ANGLES
-                    (3, 2, 6),        (3, 4, 5),          (4, 3, 5), 
-                    (4, 5, 3)],
-                   [(0, 1, 2, 3),     (1, 2, 3, 4),       (2, 1, 3, 5)],                  # DIHEDRALS
-                   [],                                                                    # IMPROPERS
-                   [],                                                                    # VSITES
-                   [(0, 3),             (0, 4),             (0, 5),                         # EXCLUSIONS
-                    (1, 3),             (1, 4),             (1, 5),             
-                    (2, 3),             (2, 4),             (2, 5)],                                           
-                   []],                                                                     # PAIRS                     
-        })
-
-## FOR PLOTTING ONLY
-#        # ADENINE
-#        self.bases = {
-#            "DA": [FUNC.spl("TNa TNa TP1 TNa"),                                      
-#            #     TYPE   EQUIL   OPTS TYPE   EQUIL   OPTS TYPE   EQUIL   OPTS
-#                   [(1,  0.330, 30000), (1,  0.229, 30000), (1,  0.266, 30000),             # BONDS BB3-SC1 bond lengthened by 0.030 nm.
-#                    (1,  0.325, 30000), (1,  0.288, 30000), (1,  0.162, 30000),],     
-#                   [(2,   93.0,   250), (2,  160.0,   200), (2,  140.0,   200),             # ANGLES
-#                    (2,   85.0,   200), (2,  148.0,   350), (2,  125.0,   200),
-#                    (2,   74.0,   200), (2,   98.0,   200)],                           
-#                   [(2,    0.0,     1), (2,    0.0,     1), (2,    0.0,     1),
-#                    (2,    0.0,     1), (2,    0.0,     1), (2,    0.0,     1),
-#                    (2,    0.0,     1), (2,    0.0,     1), (2,    0.0,     1),
-#                    (2,    0.0,     1), (2,    0.0,     1), (2,    0.0,     1),
-#                    (2,    0.0,     1), (2,    0.0,     1)],
-#                   [(2,    0.0,   500)],                                                    # IMPROPERS 
-#                   [],                                                                      # VSITES
-#                   [(), (), (), (), (), (), (), (), (), (), (), (), (), ()]],               # EXCLUSIONS
-#            }
-#        self.base_connectivity = {
-#            "DA": [[(2, 3),             (3, 4),             (4, 5),                         # BONDS
-#                    (4, 6),             (5, 6),             (6, 3)],   
-#                   [(1, 2, 3),          (2, 3, 4),          (2, 3, 6),                      # ANGLES
-#                    (3, 4, 5),          (3, 2, 7),          (4, 3, 6),
-#                    (4, 5, 6),          (5, 6, 3)], 
-#                   [(0, 1, 2, 3),       (0, 2, 3, 4),       (0, 2, 3, 6),                  # DIHEDRALS        
-#                    (1, 2, 3, 4),       (1, 2, 3, 6),       (2, 8, 9,10),
-#                    (3, 2, 7, 8),       (3, 2, 7, 9),       (3, 2, 7,10),
-#                    (3, 7, 8,10),       (3, 8, 9,10),       (4, 2, 7, 8),
-#                    (7, 2, 3, 4),       (7, 2, 3, 6)],
-#                   [(3, 4, 5, 6)],                                                          # IMPROPERS
-#                   [],                                                                      # VSITES
-#                   [(0, 3),             (0, 4),             (0, 5),                         # EXCLUSIONS
-#                    (0, 6),             (1, 3),             (1, 4),
-#                    (1, 5),             (1, 6),             (2, 3),
-#                    (2, 4),             (2, 5),             (2, 6),
-#                    (3, 5),             (4, 6)]],                                           
-#            }
-#
-#        # CYTOSINE
-#        self.bases.update({
-#            "DC": [FUNC.spl("TNa TPa TPd"),                                                     
-#            #     TYPE   EQUIL   OPTS TYPE   EQUIL   OPTS TYPE   EQUIL   OPTS
-#                   [(1,  0.290, 30000), (1,  0.220, 30000), (1,  0.285, 30000),             # BONDS BB3-SC1 bond lenghtened by 0.020 nm.
-#                    (1,  0.268, 30000),],
-#                   [(2,   93.0,   200), (2,  108.0,   250), (2,  170.0,   350),             # ANGLES
-#                    (2,  180.0,     1), (2,   62.0,   200), (2,   71.0,   200), 
-#                    (2,   47.0,   200), (2,  100.0,     1), (2,    0.0,     1),
-#                    (2,    0.0,     1), (2,    0.0,     1), (2,    0.0,     1)],
-#                   [(2,    0.0,     1), (2,    0.0,     1), (2,    0.0,     1),
-#                    (2,    0.0,     1), (2,    0.0,     1), (2,    0.0,     1),
-#                    (2,    0.0,     1), (2,    0.0,     1), (2,    0.0,     1),
-#                    (2,    0.0,     1), (2,    0.0,     1), (2,    0.0,     1),
-#                    (2,    0.0,     1), (2,    0.0,     1), (2,    0.0,     1),
-#                    (2,    0.0,     1)],
-#                   [],                                                                      # IMPROPERS
-#                   [],                                                                      # VSITES
-#                   [(), (), (), (), (), (), (), (), ()]],                                   # EXCLUSIONS
-#        })
-#        self.base_connectivity.update({
-#            "DC": [[(2, 3),           (3, 4),             (4, 5),                         # BONDS
-#                    (5, 3)],
-#                   [(1, 2, 3),        (2, 3, 4),          (2, 3, 5),                      # ANGLES
-#                    (3, 2, 6),        (3, 4, 5),          (4, 3, 5),
-#                    (4, 5, 3),        (1, 3, 5),          (1, 5, 3),
-#                    (2, 3, 6),        (2, 1, 3),          (2, 1, 5)],
-#                   [(0, 1, 2, 3),       (0, 2, 3, 4),       (0, 2, 3, 5),                  # DIHEDRALS        
-#                    (1, 2, 3, 4),       (1, 2, 3, 5),       (2, 7, 8, 9),
-#                    (3, 2, 6, 7),       (3, 2, 6, 8),       (3, 2, 6, 9),
-#                    (3, 6, 7, 9),       (3, 7, 8, 9),       (4, 2, 6, 7),
-#                    (6, 2, 3, 4),       (6, 2, 3, 5),       (2, 1, 3, 5),
-#                    (2, 1, 5, 3)],
-#                   [],                                                                    # IMPROPERS
-#                   [],                                                                    # VSITES
-#                   [(0, 3),             (0, 4),             (0, 5),                         # EXCLUSIONS
-#                    (1, 3),             (1, 4),             (1, 5),             
-#                    (2, 3),             (2, 4),             (2, 5)]],                                           
-#        })
-#
-#        # GUANINE
-#        self.bases.update({
-#            "DG": [FUNC.spl("TNa TPd TP1 TNa"),
-#            #     TYPE   EQUIL   OPTS TYPE   EQUIL   OPTS TYPE   EQUIL   OPTS
-#                   [(1,  0.300, 30000), (1,  0.295, 30000), (1,  0.295, 30000),             # BONDS BB3-SC1 bond stays the same.
-#                    (1,  0.390, 30000), (1,  0.285, 30000), (1,  0.161, 30000),],     
-#                   [(2,   95.0,   250), (2,  137.0,   300), (2,  128.0,   250),             # ANGLES
-#                    (2,   69.0,   200), (2,  145.0,   350), (2,  125.0,   200),
-#                    (2,   84.0,   200), (2,   94.0,   200)],                           
-#                   [(2,    0.0,     1), (2,    0.0,     1), (2,    0.0,     1),
-#                    (2,    0.0,     1), (2,    0.0,     1), (2,    0.0,     1),
-#                    (2,    0.0,     1), (2,    0.0,     1), (2,    0.0,     1),
-#                    (2,    0.0,     1), (2,    0.0,     1), (2,    0.0,     1),
-#                    (2,    0.0,     1), (2,    0.0,     1)],
-#                   [(2,    0.0,   150)],                                                    # IMPROPERS 
-#                   [],                                                                      # VSITES
-#                   [(), (), (), (), (), (), (), (), (), (), (), (), (), ()]],               # EXCLUSIONS
-#        })
-#        self.base_connectivity.update({
-#            "DG": [[(2, 3),             (3, 4),             (4, 5),                         # BONDS
-#                    (4, 6),             (5, 6),             (6, 3)],
-#                   [(1, 2, 3),          (2, 3, 4),          (2, 3, 6),                      # ANGLES
-#                    (3, 4, 5),          (3, 2, 7),          (4, 3, 6), 
-#                    (4, 5, 6),          (5, 6, 3)],
-#                   [(0, 1, 2, 3),       (0, 2, 3, 4),       (0, 2, 3, 6),                  # DIHEDRALS        
-#                    (1, 2, 3, 4),       (1, 2, 3, 6),       (2, 8, 9,10),
-#                    (3, 2, 7, 8),       (3, 2, 7, 9),       (3, 2, 7,10),
-#                    (3, 7, 8,10),       (3, 8, 9,10),       (4, 2, 7, 8),
-#                    (7, 2, 3, 4),       (7, 2, 3, 6)],
-#                   [(3, 4, 5, 6)],                                                          # IMPROPERS
-#                   [],                                                                      # VSITES
-#                   [(0, 3),             (0, 4),             (0, 5),                         # EXCLUSIONS
-#                    (0, 6),             (1, 3),             (1, 4),
-#                    (1, 5),             (1, 6),             (2, 3),
-#                    (2, 4),             (2, 5),             (2, 6),
-#                    (3, 5),             (4, 6)]],                                           
-#        })
-#
-#        # THYMINE
-#        self.bases.update({
-#            "DT": [FUNC.spl("TNa TP1 TPa"),
-#            #     TYPE   EQUIL   OPTS TYPE   EQUIL   OPTS TYPE   EQUIL   OPTS
-#                   [(1,  0.310, 30000), (1,  0.217, 30000), (1,  0.322, 30000),             # BONDS BB3-SC1 bond lengthened by 0.040 nm.
-#                    (1,  0.265, 30000),],
-#                   [(2,   93.0,   250), (2,  108.0,   350), (2,  165.0,   550),             # ANGLES
-#                    (2,  165.0,   400), (2,   55.0,   200), (2,   83.0,   200),
-#                    (2,   42.0,   200), (2,    0.0,     1), (2,    0.0,     1),
-#                    (2,    0.0,     1), (2,    0.0,     1)],
-#                   [(2,    0.0,     1), (2,    0.0,     1), (2,    0.0,     1),
-#                    (2,    0.0,     1), (2,    0.0,     1), (2,    0.0,     1),
-#                    (2,    0.0,     1), (2,    0.0,     1), (2,    0.0,     1),
-#                    (2,    0.0,     1), (2,    0.0,     1), (2,    0.0,     1),
-#                    (2,    0.0,     1), (2,    0.0,     1), (2,    0.0,     1)],
-#                   [],                                                                      # IMPROPERS
-#                   [],                                                                      # VSITES
-#                   [(), (), (), (), (), (), (), (), ()]],                                   # EXCLUSIONS
-#        })
-#        self.base_connectivity.update({
-#            "DT": [[(2, 3),           (3, 4),             (4, 5),                         # BONDS
-#                    (5, 3)],
-#                   [(1, 2, 3),        (2, 3, 4),          (2, 3, 5),                      # ANGLES
-#                    (3, 2, 6),        (3, 4, 5),          (4, 3, 5), 
-#                    (4, 5, 3),        (2, 3, 6),          (1, 3, 5),
-#                    (2, 1, 3),        (2, 1, 5)],
-#                   [(0, 1, 2, 3),       (0, 2, 3, 4),       (0, 2, 3, 5),                  # DIHEDRALS        
-#                    (1, 2, 3, 4),       (1, 2, 3, 5),       (2, 7, 8, 9),
-#                    (3, 2, 6, 7),       (3, 2, 6, 8),       (3, 2, 6, 9),
-#                    (3, 6, 7, 9),       (3, 7, 8, 9),       (4, 2, 6, 7),
-#                    (6, 2, 3, 4),       (6, 2, 3, 5),       (2, 1, 3, 5)],
-#                   [],                                                                    # IMPROPERS
-#                   [],                                                                    # VSITES
-#                   [(0, 3),             (0, 4),             (0, 5),                         # EXCLUSIONS
-#                    (1, 3),             (1, 4),             (1, 5),             
-#                    (2, 3),             (2, 4),             (2, 5)]],                                           
-#        })
-
-
-        #----+----------------+
-        ## D | SPECIAL BONDS  |
-        #----+----------------+
-        
-        self.special = {
-            # Used for sulfur bridges
-            # ATOM 1         ATOM 2          BOND LENGTH   FORCE CONSTANT
-            (("SC1","CYS"), ("SC1","CYS")):     (0.39,         5000),
-            }
-        
-        # By default use an elastic network
-        self.ElasticNetwork = True  
-
-        # Elastic networks bond shouldn't lead to exclusions (type 6) 
-        # But Elnedyn has been parametrized with type 1.
-        self.EBondType = 1
-        
-        #----+----------------+
-        ## D | INTERNAL STUFF |
-        #----+----------------+
-        
-        
-        ## BACKBONE BEAD TYPE ##                                                                    
-        # Dictionary of default bead types (*D)                                                     
-        self.bbBeadDictD  = hash(bbss,self.bbdef)                                                             
-        # Dictionary of dictionaries of types for specific residues (*S)                            
-        self.bbBeadDictS  = dict([(i,hash(bbss,self.bbtyp[i])) for i in self.bbtyp.keys()])                        
-
-        # combine the connectivity records for different molecule types
-        self.connectivity = dict(self.base_connectivity.items() + self.aa_connectivity.items())
-        # XXX No need to do that, let's just use separate for DNA for now
-        
-        ## BB BOND TYPE ##                                                                          
-        # Dictionary of default abond types (*D)                                                    
-        self.bbBondDictD = hash(bbss,zip(self.bbldef,self.bbkb))                                                   
-        # Dictionary of dictionaries for specific types (*S)                                        
-        self.bbBondDictS = dict([(i,hash(bbss,zip(self.bbltyp[i],self.bbkbtyp[i]))) for i in self.bbltyp.keys()])       
-        # This is tricky to read, but it gives the right bondlength/force constant
-        
-        ## BBB ANGLE TYPE ##                                                                        
-        # Dictionary of default angle types (*D)                                                    
-        self.bbAngleDictD = hash(bbss,zip(self.bbadef,self.bbka))                                                  
-        # Dictionary of dictionaries for specific types (*S)                                        
-        self.bbAngleDictS = dict([(i,hash(bbss,zip(self.bbatyp[i],self.bbkatyp[i]))) for i in self.bbatyp.keys()])      
-                    
-        ## BBBB DIHEDRAL TYPE ##                                                                    
-        # Dictionary of default dihedral types (*D)                                                 
-        self.bbDihedDictD = hash(bbss,zip(self.bbddef,self.bbkd,self.bbdmul))                                           
-        # Dictionary of dictionaries for specific types (*S)                                        
-        self.bbDihedDictS = dict([(i,hash(bbss,zip(self.bbdtyp[i],self.bbkdtyp[i]))) for i in self.bbdtyp.keys()])      
-
-        ## DNA DICTIONARIES ##
-        # Dictionary for the connectivities and parameters of bonds between DNA backbone beads
-        self.dnaBbBondDictC = dict(zip(self.dna_con['bond'],self.dna_bb['bond']))
-        # Dictionary for the connectivities and parameters of angles between DNA backbone beads
-        self.dnaBbAngleDictC = dict(zip(self.dna_con['angle'],self.dna_bb['angle']))
-        # Dictionary for the connectivities and parameters of dihedrals between DNA backbone beads
-        self.dnaBbDihDictC = dict(zip(self.dna_con['dih'],self.dna_bb['dih']))
-        # Dictionary for exclusions for DNA backbone beads
-        self.dnaBbExclDictC = dict(zip(self.dna_con['excl'],self.dna_bb['excl']))
-        # Dictionary for pairs for DNA backbone beads
-        self.dnaBbPairDictC = dict(zip(self.dna_con['pair'],self.dna_bb['pair']))
-
-        ## RNA DICTIONARIES ##
-        # Dictionary for the connectivities and parameters of bonds between RNA backbone beads
-        self.rnaBbBondDictC = dict(zip(self.rna_con['bond'],self.rna_bb['bond']))
-        # Dictionary for the connectivities and parameters of angles between rna backbone beads
-        self.rnaBbAngleDictC = dict(zip(self.rna_con['angle'],self.rna_bb['angle']))
-        # Dictionary for the connectivities and parameters of dihedrals between rna backbone beads
-        self.rnaBbDihDictC = dict(zip(self.rna_con['dih'],self.rna_bb['dih']))
-        # Dictionary for exclusions for RNA backbone beads
-        self.rnaBbExclDictC = dict(zip(self.rna_con['excl'],self.rna_bb['excl']))
-        
-        
-    # The following function returns the backbone bead for a given residue and                   
-    # secondary structure type.                                                                 
-    # 1. Check if the residue is DNA/RNA and return the whole backbone for those
-    # 2. Look up the proper dictionary for the residue                                          
-    # 3. Get the proper type from it for the secondary structure                                
-    # If the residue is not in the dictionary of specials, use the default                      
-    # If the secondary structure is not listed (in the residue specific                         
-    # dictionary) revert to the default.                                                        
-    def bbGetBead(self,r1,ss="C"):                                                               
-        if r1 in dnares3:
-            return self.dna_bb['atom']
-        elif r1 in rnares3:
-            return self.rna_bb['atom']
-        else:
-            return self.bbBeadDictS.get(r1,self.bbBeadDictD).get(ss,self.bbBeadDictD.get(ss))                      
     
-    def bbGetBond(self,r,ca,ss):
-        # Retrieve parameters for each residue from tables defined above
-        # Check is it DNA residue
-        if r[0] in dnares3:
-            return ca in self.dnaBbBondDictC.keys() and self.dnaBbBondDictC[ca] or None
-        # RNA is not implemented properly yet
-        elif r[0] in rnares3:
-            return ca in self.rnaBbBondDictC.keys() and self.rnaBbBondDictC[ca] or None
-        # If it's protein
-        else:
-            import math
-            # The 150000 forceconstant gave an error message, turning to constraints would be better.
-            return ( math.sqrt(distance2(ca[0],ca[1]))/10., None )
-    
-    def bbGetAngle(self,r,ca,ss):
-        # Check is it DNA residue
-        if r[0] in dnares3:
-            return ca in self.dnaBbAngleDictC.keys() and self.dnaBbAngleDictC[ca] or None
-        # RNA is not implemented properly yet
-        elif r[0] in rnares3:
-            return ca in self.rnaBbAngleDictC.keys() and self.rnaBbAngleDictC[ca] or None
-        # For protein
-        else:
-            import math
-            # Elnedyn takes angles from structure, with fc=40
-            return (math.acos(cos_angle([i-j for i,j in zip(ca[0],ca[1])],[i-j for i,j in zip(ca[2],ca[1])]))/d2r, 40)
 
-    def bbGetExclusion(self,r,ca,ss):
-        if r[0] in dnares3:
-            return ca in self.dnaBbExclDictC.keys() and ' ' or None
-        # RNA is not implemented properly yet
-        elif r[0] in rnares3:
-            return ca in self.rnaBbExclDictC.keys() and ' ' or None
-        else:
-            return None
-
-    def bbGetPair(self,r,ca,ss):
-        if r[0] in dnares3:
-            return ca in self.dnaBbPairDictC.keys() and ' ' or None
-        # RNA is not implemented properly yet
-        elif r[0] in rnares3:
-            return ca in self.rnaBbPairDictC.keys() and ' ' or None
-        else:
-            return None
-
-    def bbGetDihedral(self,r,ca,ss):
-        # Retrieve parameters for each residue from table defined above
-        # Check is it DNA residue
-        if r[0] in dnares3:
-            return ca in self.dnaBbDihDictC.keys() and self.dnaBbDihDictC[ca] or None
-        # RNA is not implemented properly yet
-        elif r[0] in rnares3:
-            return ca in self.rnaBbDihDictC.keys() and self.rnaBbDihDictC[ca] or None
-        # Apparently protein has none currently
-
-    def getCharge(self,atype,aname):
-        return self.charges.get(atype,self.bbcharges.get(aname,0))
-        
-    def messages(self):
-        '''Prints any force-field specific logging messages.'''
-        import logging
-        logging.warning('#####################################################################################')
-        logging.warning('This is a version of martinize for DNA and should NOT be used for proteins.')
-        logging.warning('#####################################################################################')
-        pass
 #########################
 ## 7 # ELASTIC NETWORK ##  -> @ELN <-
 #########################
@@ -2709,7 +1803,18 @@ def pdbFrameIterator(streamIterator):
     if atoms:
         yield "".join(title), atoms, box
 
-
+def pdbFrame(streamIterator):
+    # Update by Shimian
+    title, atoms, box = [], [], []
+    for i in streamIterator:
+        if i.startswith("TITLE"):
+            title.append(i)
+        elif i.startswith("CRYST1"):
+            box = pdbBoxRead(i)
+        elif i.startswith("ATOM") or i.startswith("HETATM"):
+            atoms.append(pdbAtom(i))
+    if atoms:
+        yield "".join(title), atoms, box
 #----+---------+
 ## B | GRO I/O |
 #----+---------+
@@ -2757,10 +1862,10 @@ def groFrameIterator(streamIterator):
 def getChargeType(resname,resid,choices):
     '''Get user input for the charge of residues, based on list with choises.'''
     print('Which %s type do you want for residue %s:'%(resname,resid+1))
-    for i,choice in choices.iteritems():
+    for i,choice in choices.items():
         print('%s. %s'%(i,choice))
     choice = None
-    while choice not in choices.keys():
+    while choice not in choices:
         choice = input('Type a number:')
     return choices[choice]
 
@@ -2770,34 +1875,20 @@ def getChargeType(resname,resid,choices):
 # a normal stream.
 def streamTag(stream):
     # Tag the stream with the type of structure file
-    # If necessary, open the stream, taking care of 
-    # opening using gzip for gzipped files
+    # Ensure the file is a .pdb file
 
-    # First check whether we have have an open stream or a file
-    # If it's a file, check whether it's zipped and open it
-    if type(stream) == str:
-        if stream.endswith("gz"):
-            logging.info('Read input structure from zipped file.')
-            s = gzip.open(stream)
-        else:
-            logging.info('Read input structure from file.')
-            s = open(stream)
+    # Check whether we have a file path and it ends with .pdb
+    if type(stream) == str and stream.endswith(".pdb"):
+        logging.info('Read input structure from PDB file.')
+        s = open(stream)
     else:
-        logging.info('Read input structure from command-line')
-        s = stream
+        raise ValueError("Input must be a .pdb file path")
 
     # Read a few lines, but save them
     x = [s.readline(), s.readline()]
-    if x[-1].strip().isdigit():
-        # Must be a GRO file
-        logging.info("Input structure is a GRO file. Chains will be labeled consecutively.")
-        yield "GRO"
-    else:
-        # Must be a PDB file then
-        # Could wind further to see if we encounter an "ATOM" record
-        logging.info("Input structure is a PDB file.")
-        yield "PDB"
-    
+    logging.info("Input structure is a PDB file.")
+    yield "PDB"
+
     # Hand over the lines that were stored
     for i in x:
         yield i
@@ -3174,7 +2265,7 @@ class Chain:
                 chains.append(self[chainStart:i+1])
                 chainStart = i+1
         if chains:
-            logging.debug('Splitting chain %s in %s chains'%(self.id,len(chains)+1))
+            logging.info('Splitting chain %s in %s chains'%(self.id,len(chains)+1))
         return chains + [self[chainStart:]]
 
     def getname(self,basename=None):
@@ -3298,7 +2389,7 @@ class Chain:
             atid += len(residue)
 
             # Keep track of the numbers for CONECTing
-            bb.append(bb[-1]+len(beads))
+            # bb.append(bb[-1]+len(beads))
 
         if fail:
             logging.error("Unable to generate coarse grained structure due to missing atoms.")
@@ -3433,7 +2524,7 @@ class Bond(Bonded):
 
     # Overriding __str__ method to suppress printing of bonds with Fc of 0
     def __str__(self):
-        if len(self.parameters) > 1 and self.parameters[1] == 0:
+        if (self.parameters is None) or (len(self.parameters) > 1 and self.parameters[1] == 0):
             return ""
         return Bonded.__str__(self)
 
@@ -3522,26 +2613,6 @@ class Dihedral(Bonded):
             else:
                 self.parameters = None
 
-        # if not self.parameters:
-        #     self.parameters = self.options['ForceField'].bbGetDihedral(r,ca,ss)
-        # # If there are more than two parameters given, user HAS TO define the diheral type as the first one.
-        # # This is to allow use of any gromacs dihedral type.
-        # if self.parameters and len(self.parameters)>2:
-        #     self.type,self.parameters = self.parameters[0],self.parameters[1:]
-
-        # XXX Move this to force field files to accommodate polbb and dna dihedrals in a uniform way
-        # if ''.join(i for i in ss) == 'FFFF':
-        #    # Collagen
-        #    self.parameters = self.options['ForceField'].bbDihedDictD['F']
-        #elif ''.join(i for i in ss) == 'EEEE' and self.options['ExtendedDihedrals']:
-        #    # Use dihedrals
-        #    self.parameters = self.options['ForceField'].bbDihedDictD['E']
-        #elif set(ss).issubset("H123"):
-        #    # Helix
-        #    self.parameters = self.options['ForceField'].bbDihedDictD['H']
-        #else:
-        #    self.parameters = None
-
 
 # This list allows to retrieve Bonded class items based on the category
 # If standard, dictionary type indexing is used, only exact matches are
@@ -3600,9 +2671,7 @@ class Topology:
             for attrib in ["atoms","vsites","bonds","angles","dihedrals","impropers","constraints","posres"]:
                 setattr(self,attrib,getattr(other,attrib,[]))
         elif isinstance(other,Chain):
-            if other.type() == "Protein" and other.options['ForceField'].name in ['polbb']:
-                self.fromAminoAcidSequencePolBB(other)
-            elif other.type() == "Protein":
+            if other.type() == "Protein":
                 self.options['type'] = 'Protein'
                 self.fromAminoAcidSequence(other)
             elif other.type() == "Nucleic":
@@ -3896,8 +2965,9 @@ class Topology:
             # If a secondary structure is provided, use that. chain is none.
             chain         = None
             self.secstruc = secstruc
-        logging.debug(self.secstruc)
-        logging.debug(self.sequence)
+        
+        # logging.debug(self.secstruc)
+        # logging.debug(self.sequence)
 
         # Fetch the sidechains
         # Pad with empty lists for atoms, bonds, angles 
@@ -3917,7 +2987,7 @@ class Topology:
 
         # Backbone bead atom IDs
         bbid = [startAtom]
-        for i in zip(*sc)[0]:
+        for i in [i[0] for i in sc[:-1]]:
             bbid.append(bbid[-1]+len(i)+1)
 
         # Calpha positions, to get Elnedyn BBB-angles and BB-bond lengths
@@ -3936,7 +3006,7 @@ class Topology:
         # This contains the information for deriving backbone bead types,
         # bb bond types, bbb/bbs angle types, and bbbb dihedral types and
         # Elnedyn BB-bondlength BBB-angles
-        seqss = zip(bbid,self.sequence,self.secstruc,positionCa)
+        seqss = list(zip(bbid,self.sequence,self.secstruc,positionCa))
 
         # Fetch the proper backbone beads          
         bb = [self.options['ForceField'].bbGetBead(res,typ) for num,res,typ,Ca in seqss]
@@ -3973,7 +3043,7 @@ class Topology:
                 for q in quadruples:
                     id,rn,ss,ca = zip(*q)
                     # Maybe do local elastic networks
-                    if ss == ("E","E","E","E") and not self.options['ExtendedDihedrals']:
+                    if ss == ("E","E","E","E") and not self.options['ExtendedDihedrals'].value:
                         # This one may already be listed as the 2-4 bond of a previous one
                         if not (id[0],id[2]) in self.bonds:
                             self.bonds.append(Bond(options=self.options,atoms=(id[0],id[2]),parameters=self.options['ForceField'].ebonds['short'],type=1,
@@ -3989,7 +3059,7 @@ class Topology:
                         # Since dihedrals can return None, we first collect them separately and then
                         # add the non-None ones to the list
                         dihed = Dihedral(q,options=self.options,category="BBBB")
-                        if dihed:
+                        if str(dihed):
                             self.dihedrals.append(dihed)
 
             # Elnedyn does not use backbone-backbone-sidechain-angles
@@ -4056,7 +3126,7 @@ class Topology:
             # Side Chain exclusions
             # The new polarizable forcefield give problems with the charges in the sidechain, if the backbone is also charged.
             # To avoid that, we add explicit exclusions
-            if bbb in self.options['ForceField'].charges.keys() and resname in self.options['ForceField'].mass_charge.keys():
+            if bbb in self.options['ForceField'].charges and resname in self.options['ForceField'].mass_charge:
                 for i in [i for i, d in enumerate(scatoms) if d=='D']:
                     self.exclusions.append(Exclusion(options=self.options,atoms=(atid,i+atid+1),comments='%s(%s)'%(resname,resi),parameters=(None,)))
 
@@ -4067,7 +3137,7 @@ class Topology:
                     atype,aname = "v"+atype,"v"+aname
                 # If mass or charge diverse, we adopt it here. 
                 # We don't want to do this for BB beads because of charged termini.
-                if resname in self.options['ForceField'].mass_charge.keys() and counter != 0:
+                if resname in self.options['ForceField'].mass_charge and counter != 0:
                     M,Q = self.options['ForceField'].mass_charge[resname]
                     aname = Q[counter-1]>0 and 'SCP' or Q[counter-1]<0 and 'SCN' or aname
                     self.atoms.append((atid,atype,resi,resname,aname,atid,Q[counter-1],M[counter-1],ss))
@@ -4145,8 +3215,8 @@ class Topology:
             chain         = None
             self.secstruc = secstruc
 
-        logging.debug(self.secstruc)
-        logging.debug(self.sequence)
+        # logging.debug(self.secstruc)
+        # logging.debug(self.sequence)
 
         # Fetch the base information 
         # Pad with empty lists for atoms, bonds, angles 
@@ -4165,7 +3235,7 @@ class Topology:
 
         # Backbone bead atom IDs
         bbid = [[startAtom,startAtom+1,startAtom+2]]
-        for i in zip(*sc)[0]:
+        for i in [i[0] for i in sc[:-1]]:
             bbid1 = bbid[-1][0]+len(i)+3
             bbid.append([bbid1,bbid1+1,bbid1+2])
             #bbid.append(bbid[-1]+len(i)+1)
@@ -4175,7 +3245,7 @@ class Topology:
 
         # This contains the information for deriving backbone bead types,
         # bb bond types, bbb/bbs angle types, and bbbb dihedral types.
-        seqss = zip(bbid,self.sequence,self.secstruc)
+        seqss = list(zip(bbid,self.sequence,self.secstruc))
 
         # Fetch the proper backbone beads          
         # Since there are three beads we need to split these to the list
@@ -4215,31 +3285,31 @@ class Topology:
                 # and then checked for each pair.
                 for l in frg[ind:ind+3]:
                     excl = Exclusion((k,l),category="BB",options=self.options,)
-                    if excl:
+                    if str(excl):
                         self.exclusions.append(excl) 
 
                 # Pairs iterate over the second atom.
                 # and then checked for each pair.
                 for l in frg[ind:ind+3]:
                     pair = Pair((k,l),category="BB",options=self.options,)
-                    if pair:
+                    if str(pair):
                         self.pairs.append(pair) 
 
                 # Bonds iterate over the second atom.
                 for l in frg[ind:ind+3]:
                     bond = Bond((k,l),category="BB",options=self.options,)
-                    if bond:
+                    if str(bond):
                         self.bonds.append(bond)
                     # The angles need a third loop.
                     for m in frg[ind:ind+3]:
                         angle = Angle((k,l,m,),options=self.options,category="BBB")
-                        if angle:
+                        if str(angle):
                             self.angles.append(angle)
                             
                         # The dihedrals need a fourth loop.
                         for n in frg[ind+1:ind+4]:
                             dihed = Dihedral((k,l,m,n,),options=self.options,category="BBBB")
-                            if dihed:
+                            if str(dihed):
                                 if len(dihed.parameters) > 3:
                                     dihed2 = Dihedral((k,l,m,n,),options=self.options, parameters=dihed.parameters[3:],category="BBBB")
                                     dihed.parameters = dihed.parameters[:3]
@@ -4435,251 +3505,6 @@ class Topology:
                 ElasticMaximumForce,ElasticMinimumForce)
             #self.bonds.extend([Bond(i,options=self.options,type=6,category="Rubber band") for i in rubberList])
 
-
-    def fromAminoAcidSequencePolBB(self,sequence,secstruc=None,links=None,breaks=None,
-                              mapping=None,rubber=False,multi=False):
-
-        # Shift for the atom numbers of the atomistic part in a chain 
-        # that is being multiscaled
-        shift = 0
-        # First check if we get a sequence or a Chain instance
-        if isinstance(sequence, Chain):
-            chain         = sequence
-            links         = chain.links
-            breaks        = chain.breaks
-            # If the mapping is not specified, the actual mapping is taken,
-            # used to construct the coarse grained system from the atomistic one.
-            # The function argument "mapping" could be used to use a default 
-            # mapping scheme in stead, like the mapping for the GROMOS96 force field.
-            mapping = mapping           or chain.mapping
-            multi   = self.options['multi']  or chain.multiscale
-            self.secstruc = chain.sstypes or len(chain)*"C"
-            self.sequence = chain.sequence
-            # If anything hints towards multiscaling, do multiscaling
-            self.multiscale = self.multiscale or chain.multiscale or multi
-            if self.multiscale:
-                shift        = self.natoms
-                self.natoms += len(chain.atoms())
-        elif not secstruc:
-            # If no secondary structure is provided, set all to coil
-            chain         = None
-            self.secstruc = len(self.sequence)*"C"
-        else:
-            # If a secondary structure is provided, use that. chain is none.
-            chain         = None
-            self.secstruc = secstruc
-
-        logging.debug(self.secstruc)
-        logging.debug(self.sequence)
-
-        # Fetch the base information 
-        # Pad with empty lists for atoms, bonds, angles 
-        # and dihedrals, and take the first five lists out
-        # This will avoid errors for residues for which 
-        # these are not defined.
-
-        sc = [(self.options['ForceField'].sidechains[res]+6*[[]])[:6] for res in self.sequence]
-
-        # ID of the first atom/residue
-        # The atom number and residue number follow from the last 
-        # atom c.q. residue id in the list processed in the topology
-        # thus far. In the case of multiscaling, the real atoms need 
-        # also be accounted for.
-        startAtom = self.natoms + 1 
-        startResi = self.atoms and self.atoms[-1][2]+1 or 1
-
-        # Backbone bead atom IDs
-        # XXX Number of backbone beads hardcoded
-        bbid = [[startAtom+i for i in range(4)]]
-        for i in zip(*sc)[0]:
-            bbid1 = bbid[-1][0]+len(i)+4
-            bbid.append([bbid1+i for i in range(4)])
-            #bbid.append(bbid[-1]+len(i)+1)
-
-        # Residue numbers for this moleculetype topology
-        resid = range(startResi,startResi+len(self.sequence))     
-
-        # This contains the information for deriving backbone bead types,
-        # bb bond types, bbb/bbs angle types, and bbbb dihedral types.
-        seqss = zip(bbid,self.sequence,self.secstruc)
-        # The last residue only has a Calpha in the BB and no dipole.
-        seqss[-1] = (seqss[-1][0][:1],)+seqss[-1][1:]
-
-        # Fetch the proper backbone beads          
-        # Since there are  N beads we need to split these to the list
-        bb = [self.options['ForceField'].bbGetBead(res,typ) for num,res,typ in seqss]
-        # bbGetBead always returns all the BB-beads. For the last residue to get out
-        # only the last we preprocess it together with seqss (which does have the right length).
-        bbMulti = [beadname for residue,beads in zip(seqss,bb) for atomid,beadname in zip(residue[0],beads)]
-
-        # This is going to be usefull for the type of the last backbone bead.
-        # If termini need to be charged, change the bead types
-        #if not self.options['NeutralTermini']:
-        #    bb[0]  ="Qd"
-        #    bb[-1] = "Qa"
-
-        # If breaks need to be charged, change the bead types 
-        #if self.options['ChargesAtBreaks']:
-        #    for i in breaks:
-        #        bb[i]   = "Qd"
-        #        bb[i-1] = "Qa"
-
-        # For backbone parameters, iterate over fragments, inferred from breaks
-        for i,j in zip([0]+breaks,breaks+[-1]):
-            # Extract the fragment
-            frg = j==-1 and seqss[i:] or seqss[i:j]
-            # Expand the N bb beads per residue into one long list
-            # Resulting list contains three tuples per residue 
-            # We use the useless ca parameter to get the correct backbone bond from bbGetBond 
-            frg = [(j[0][i],j[1],j[2],j[0][i]-1) for j in frg for i in range(len(j[0]))]
-
-            # Iterate over backbone bonds, two loops are needed because there are multipe cross bonds in the BB.
-            # Since bonded interactions can return None, we first collect them separately and then
-            # add the non-None ones to the list
-            # Number of backbone beads hardcoded to 4
-            for ind,k in enumerate(frg):
-                # Virtual site and exclusions we check per bead
-                vsite = Vsite((k,),category="BB",options=self.options,)
-                if vsite:
-                     self.vsites.append(vsite)
-                excl = Exclusion((k,),category="BB",options=self.options,)
-                if excl and max(excl.parameters) <= len(bbMulti):
-                    self.exclusions.append(excl)
-                
-                # Bonds and pairs interate over the second atom.
-                for l in frg[ind:ind+9]:
-                    bond = Bond((k,l),category="BB",options=self.options,)
-                    if bond:
-                        self.bonds.append(bond)
-                    pair = Pair((k,l),category="BB",options=self.options,type=2,)
-                    if pair:
-                        self.pairs.append(pair)
-
-                    # The angles need a third loop.
-                    for m in frg[ind:ind+9]:
-                        angle = Angle((k,l,m,),options=self.options,category="BBB")
-                        if angle:
-                            self.angles.append(angle)
-
-                        # The dihedrals need a fourth loop.
-                        for n in frg[ind:ind+9]:
-                            dihed = Dihedral((k,l,m,n,),options=self.options,category="BBBB")
-                            if dihed:
-                                self.dihedrals.append(dihed)
-
-        # Now do the atom list, and take the sidechains along
-        #
-        atid  = startAtom
-        # We need to do some trickery to get all N bb beads in to these lists
-        # This adds each element to a list three times, feel free to shorten up
-        residMulti = [res for i,res in enumerate(resid) for j in range(len(bb[i]))]
-        sequenceMulti = [resname for i,resname in enumerate(self.sequence) for j in range(len(bb[i]))]
-        # Would it be easier to only give a sidechain for the beads that connect to one (ie the first)?
-        scMulti = [sidechain for i,sidechain in enumerate(sc) for j in range(len(bb[i]))]
-        secstrucMulti = [secstruc for i,secstruc in enumerate(self.secstruc) for j in range(len(bb[i]))]
-        count = 0
-        for resi,resname,bbb,sidechn,ss in zip(residMulti,sequenceMulti,bbMulti,scMulti,secstrucMulti):
-            # We only want one side chain per three backbone beads so this skips the others
-            if (count % len(bb[0])) == 0:    
-                # Note added impropers in contrast to aa
-                scatoms, bon_par, ang_par, dih_par, imp_par, vsite_par = sidechn
-
-                # Side chain bonded terms
-                # Collect bond, angle and dihedral connectivity
-                bon_con,ang_con,dih_con,imp_con,vsite_con = (self.options['ForceField'].connectivity[resname]+5*[[]])[:5]
-
-                # Side Chain Bonds/Constraints
-                for atids,par in zip(bon_con,bon_par):
-                    if par[1] == None:
-                        self.bonds.append(Bond(options=self.options,atoms=atids,parameters=[par[0]],type=1,
-                                               comments=resname,category="Constraint"))
-                    else:
-                        self.bonds.append(Bond(options=self.options,atoms=atids,parameters=par,type=1,
-                                               comments=resname,category="SC"))
-                    # Shift the atom numbers
-                    self.bonds[-1] += atid
-
-                # Side Chain Angles
-                for atids,par in zip(ang_con,ang_par):
-                    self.angles.append(Angle(options=self.options,atoms=atids,parameters=par,type=2,
-                                             comments=resname,category="SC"))
-                    # Shift the atom numbers
-                    self.angles[-1] += atid
-
-                # Side Chain Dihedrals
-                for atids,par in zip(dih_con,dih_par):
-                    self.dihedrals.append(Dihedral(options=self.options,atoms=atids,parameters=par,type=2,
-                                                   comments=resname,category="SC"))
-                    # Shift the atom numbers
-                    self.dihedrals[-1] += atid
-
-                # Side Chain Impropers
-                for atids,par in zip(imp_con,imp_par):
-                    self.dihedrals.append(Dihedral(options=self.options,atoms=atids,parameters=par,type=2,
-                                                   comments=resname,category="SC"))
-                    # Shift the atom numbers
-                    self.dihedrals[-1] += atid
-
-                # Side Chain V-Sites
-                for atids,par in zip(vsite_con,vsite_par):
-                    self.vsites.append(Vsite(options=self.options,atoms=atids,parameters=par,type=1,
-                                                   comments=resname,category="SC"))
-                    # Shift the atom numbers
-                    self.vsites[-1] += atid
-            
-                # Side Chain exclusions
-                # The new polarizable forcefield give problems with the charges in the sidechain, if the backbone is also charged.
-                # To avoid that, we add explicit exclusions
-                if bbb in self.options['ForceField'].charges.keys() and resname in self.options['ForceField'].mass_charge.keys():
-                    for i in [i for i, d in enumerate(scatoms) if d=='D']:
-                        self.exclusions.append(Exclusion(options=self.options,atoms=(atid,i+atid+1),comments='%s(%s)'%(resname,resi),parameters=(None,)))
-
-                # All residue atoms
-                counter = 0  # Counts over beads
-                # Count it the current backbone bead. bbb is the current backbone residue
-                bbbset = [bbMulti[count+i] for i in range(len(seqss[resi-1][0]))]
-                aNames = CoarseGrained.residue_bead_names_polBB[1:4]+CoarseGrained.residue_bead_names_polBB[:1]+CoarseGrained.residue_bead_names_polBB[4:]
-                for atype,aname in zip(bbbset+list(scatoms),aNames):
-                    if self.multiscale:
-                        atype,aname = "v"+atype,"v"+aname
-                    # If mass or charge diverse, we adopt it here. 
-                    # We don't want to do this for BB beads because of charged termini.
-                    if resname in self.options['ForceField'].mass_charge.keys() and counter != 0:
-                        logging.error('Polarizable backbones and sidechains are not yet compatible.')
-                        sys.exit()
-                        M,Q = self.options['ForceField'].mass_charge[resname]
-                        aname = Q[counter-1]>0 and 'SCP' or Q[counter-1]<0 and 'SCN' or aname
-                        self.atoms.append((atid,atype,resi,resname,aname,atid,Q[counter-1],M[counter-1],ss))
-                    elif atid in [vSite.atoms[0] for vSite in self.vsites]:
-                        charge = self.options['ForceField'].getCharge(atype,aname)
-                        mass = 0
-                        self.atoms.append((atid,atype,resi,resname,aname,atid,charge,mass,ss))
-                    else:
-                        charge = self.options['ForceField'].getCharge(atype,aname)
-                        self.atoms.append((atid,atype,resi,resname,aname,atid,charge,ss))
-                    # Doing this here save going over all the atoms onesmore.
-                    # Generate position restraints for all atoms or Backbone beads only.
-                    if 'all' in self.options['PosRes']:
-                        self.posres.append((atid)) 
-                    elif aname in self.options['PosRes']:
-                        self.posres.append((atid))
-                    if mapping:
-                        self.mapping.append((atid,[i+shift for i in mapping[counter]]))
-                    atid    += 1
-                    counter += 1
-            count += 1
-
-#        # One more thing, we need to remove dihedrals (2) and an angle (1)  that reach beyond the 3' end
-#        # This is stupid to do now but the total number of atoms seems not to be available before
-#        # This iterate the list in reverse order so that removals don't affect later checks
-#        for i in range(len(self.dihedrals)-1,-1,-1):
-#            if (max(self.dihedrals[i].atoms) > self.atoms[-1][0]):
-#                del self.dihedrals[i]
-#        for i in range(len(self.angles)-1,-1,-1):
-#            if (max(self.angles[i].atoms) > self.atoms[-1][0]):
-#                del self.angles[i]
-
-
     def fromMoleculeList(self,other):
         pass
 
@@ -4697,13 +3522,11 @@ def main(options):
 
     # The streamTag iterator first yields the file type, which 
     # is used to specify the function for reading frames
-    fileType = inStream.next()
-    if fileType == "GRO":
-        frameIterator = groFrameIterator
-    else:
-        frameIterator = pdbFrameIterator
+    fileType = next(inStream)
+    if fileType != "PDB":
+        raise NotImplementedError
     
-
+    # title, atoms, box = pdbFrame(inStream) 
     ## ITERATE OVER FRAMES IN STRUCTURE FILE ##
 
     # Now iterate over the frames in the stream
@@ -4712,7 +3535,7 @@ def main(options):
     cgOutPDB  = None
     ssTotal   = []
     cysteines = []
-    for title,atoms,box in frameIterator(inStream):
+    for title,atoms,box in pdbFrame(inStream):
     
         if fileType == "PDB":
             # The PDB file can have chains, in which case we list and process them specifically
@@ -4781,12 +3604,12 @@ def main(options):
 
         # Here we interactively check the charge state of resides
         # Can be easily expanded to residues other than HIS
-        for chain in chains:
-            for i,resname in enumerate(chain.sequence):
-                 if resname == 'HIS' and options['chHIS']:
-                     choices = {0:'HIH',1:'HIS'}
-                     choice = getChargeType(resname,i,choices)
-                     chain.sequence[i] = choice
+        # for chain in chains:
+        #     for i,resname in enumerate(chain.sequence):
+        #          if resname == 'HIS' and options['chHIS']:
+        #              choices = {0:'HIH',1:'HIS'}
+        #              choice = getChargeType(resname,i,choices)
+        #              chain.sequence[i] = choice
 
     
 
@@ -4802,11 +3625,11 @@ def main(options):
 
         ## SECONDARY STRUCTURE
         ss = '' 
-        if options['Collagen']:
+        if options['Collagen'].value:
             for chain in chains:
                 chain.set_ss("F")
                 ss += chain.ss
-        elif options["-ss"]:
+        elif options["-ss"].value:
             # XXX We need error-catching here, 
             # in case the file doesn't excist, or the string contains bogus.
             # If the string given for the sequence consists strictly of upper case letters
@@ -4837,7 +3660,7 @@ def main(options):
                 chain.set_ss(sstmp[:ln])
                 sstmp = ss[:ln]                         
         else:
-            if options["-dssp"]:
+            if options["-dssp"].value:
                 method, executable = "dssp", options["-dssp"].value
             #elif options["-pymol"]:
             #    method, executable = "pymol", options["-pymol"].value
@@ -4850,7 +3673,7 @@ def main(options):
         
             # Used to be: if method in ("dssp","pymol"): but pymol is not supported
             if method in ["dssp"]:
-                logging.debug('%s determined secondary structure:\n'%method.upper()+ss)
+                logging.info('%s determined secondary structure:\n'%method.upper()+ss)
         
         # Collect the secondary structure classifications for different frames
         ssTotal.append(ss)    
@@ -5034,7 +3857,7 @@ def main(options):
 
     
     # Evertything below here we only need, if we need to write a Topology
-    if options['-o']:
+    if options['-o'].value:
 
         # Collect the secondary structure stuff and decide what to do with it
         # First rearrange by the residue
@@ -5171,9 +3994,7 @@ def main(options):
                             cuts.append(cuts[-1]+enStrandLengths[i]+1)
                         for i in range(1,strands):
                             nucleic_coords += coords[cuts[i-1]+1:cuts[i]]
-                    if options['ElasticNetwork']:
-                        #print options['ElasticBeads']
-                        #print top.atoms[0]
+                    if options['ElasticNetwork'].value:
                         rubberType = options['ForceField'].EBondType
                         rubberList = rubberBands(
                             [(i[0],j) for i,j in zip(top.atoms,nucleic_coords) if i[4] in options['ElasticBeads']],
@@ -5182,7 +4003,7 @@ def main(options):
                             options['ElasticMaximumForce'],options['ElasticMinimumForce'])
                         top.bonds.extend([Bond(i,options=options,type=rubberType,category="Rubber band") for i in rubberList])
                 else:
-                    if options['ElasticNetwork']:
+                    if options['ElasticNetwork'].value:
                         #print options['ElasticBeads']
                         #print top.atoms[0]
                         rubberType = options['ForceField'].EBondType
@@ -5275,9 +4096,9 @@ Martini system from %s
     options['ForceField'].messages()
 
     # The following lines are always printed (if no errors occur).
-    print "\n\tThere you are. One MARTINI. Shaken, not stirred.\n"
+    print("\n\tThere you are. One MARTINI. Shaken, not stirred.\n")
     Q = martiniq.pop(random.randint(0,len(martiniq)-1))
-    print "\n", Q[1], "\n%80s"%("--"+Q[0]), "\n"
+    print("\n", Q[1], "\n%80s"%("--"+Q[0]), "\n")
 
 
 if __name__ == '__main__':
