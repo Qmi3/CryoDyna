@@ -2005,7 +2005,7 @@ class Topology:
                 for q in quadruples:
                     id, rn, ss, ca = zip(*q)
                     # Maybe do local elastic networks
-                    if ss == ("E", "E", "E", "E") and not self.options['ExtendedDihedrals'].value:
+                    if ss == ("E", "E", "E", "E") and 'ExtendedDihedrals' not in self.options:
                         # This one may already be listed as the 2-4 bond of a previous one
                         if not (id[0], id[2]) in self.bonds:
                             self.bonds.append(Bond(
