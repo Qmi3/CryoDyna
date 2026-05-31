@@ -105,9 +105,10 @@ atom_xxxxx/
 In this step, we generate an ensemble of molecule structures from the particles with 1-6 beads representing each residue.
 
 During the training of CryoDyna-CG, the model requires a MARTINI coarse-grained structural prior.
-You may directly provide an all-atom structure, and CryoDyna-CG will automatically perform the coarse-graining.
 
-**(Optionally)**, you may provide a MARTINI-coarse-grained structure that has already been energy-minimized, which can help the structural regularization converge more quickly during the early training stage. Using 1ake as an example: First, run ``` ./martinize_struct_prior.sh ```  to generate the coarse-grained mapping from the all-atom structure. Then, run ```./minimize_struct_prior.sh``` to perform energy minimization (this step requires that the user has GROMACS installed).
+You could set cfg.dataset_attr.ref_pdb_path to the path of your all-atom structure and set cfg.dataset_attr.ref_cg_pdb_path = None in the config file. CryoDyna-CG will automatically perform the coarse-graining.
+
+**(Optionally)**, you could provide a MARTINI-coarse-grained structure that has already been energy-minimized, which can help the structural regularization converge more quickly during the early training stage. Using 1ake as an example: First, run ``` ./martinize_struct_prior.sh ```  to generate the coarse-grained mapping from the all-atom structure. Then, run ```./minimize_struct_prior.sh``` to perform energy minimization (this step requires that the user has GROMACS installed).
 
 After that, run
 
