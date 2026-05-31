@@ -1,8 +1,7 @@
 ## CryoDyna: Multiscale end-to-end modeling of cryo-EM macromolecule dynamics with physics-aware neural network
-[📚 User Guide](https://stu-pku-edu-cn.gitbook.io/cryodyna/)
 
 ## User Guide
-The detailed user guide can be found at [here](https://stu-pku-edu-cn.gitbook.io/cryodyna/). This comprehensive guide provides in-depth information about the topic at hand. Feel free to visit the link if you're seeking more knowledge or need extensive instructions regarding the topic. 
+The detailed user guide can be found at [here](https://www.notion.so/An-exampled-experimental-dataset-EMPIAR-10073-a911c421ec0c83fea134014242bfac9f?source=copy_link). This comprehensive guide provides in-depth information about the topic at hand. Feel free to visit the link if you're seeking more knowledge or need extensive instructions regarding the topic. 
 
 ## Installation
 
@@ -15,7 +14,7 @@ conda activate cryodyna
 ```bash
 git clone https://github.com/Qmi3/Cryodyna.git
 cd Cryodyna 
-pip install -r requirements.txt
+pip install -r requirements.txt # Make sure to install the torch version that matches your CUDA driver version.
 pip install -e .
 conda install -c ostrokach dssp
 ```
@@ -24,9 +23,10 @@ conda install -c ostrokach dssp
 
 ### Preliminary
 
-You may need to prepare the resources below before running `CryoDyna`:
+You may need to prepare the resources below before running `CryoDyna` (see user guide):
 
-- **Consensus map** together with the pose parameters of each particle.
+- **Consensus map** from homogenous reconstruction
+- **STAR file** with ctf, pose and path of each particle.
 - **PDB structure** docked into the consensus map.
 
 **PDB requirements**
@@ -36,18 +36,31 @@ You may need to prepare the resources below before running `CryoDyna`:
 
 ### Example Dataset
 
-We use a simulated dataset of the **one-dimensional conformational transition of *Escherichia coli* adenylate kinase** between its closed state (PDB: 1AKE) and open state (PDB: 4AKE) as an example.
+We use a simulated dataset of the **one-dimensional conformational transition of *Escherichia coli* adenylate kinase** between its closed state (PDB: 1AKE) and open state (PDB: 4AKE) as an example (This case includes aligned PDB structure).
 
 Download the dataset:
 
 ```bash
 wget https://zenodo.org/records/17581921/files/tutorial_data_1ake.zip
 ```
-and extract the zip file to the path `./projects/star`:
+and extract the zip file to the path `./`:
 ```bash
-mkdir ./projects/star
-unzip tutorial_data_1ake.zip -d ./projects/star
+unzip tutorial_data_1ake.zip -d ./
 ```
+### Smoke Test
+
+Before applying CryoDyna to the test dataset, we first run a smoke test to verify that the software has been successfully installed. This test includes model initialization, inference, loss function computation, etc. Please enter the following three commands in the terminal, one after another:
+
+```bash
+python projects/train_atom.py projects/atom_configs/1ake.py --cfg-options eval_mode=True work_dir_name="1ake/residue_test"
+
+python projects/train_cg.py projects/cg_configs/1ake.py --cfg-options eval_mode=True work_dir_name="1ake/bead_test"
+
+python projects/train_density.py projects/density_configs/1ake.py --cfg-options eval_mode=True work_dir_name="1ake/density_test"
+```
+
+Upon success,, the test will output "You have passed residue-level/bead-level/volume decoder test." at the end of logs. Additionally, result files with the step number 0000_0000000 will be generated in the following directories under : residue_test, bead_test, and density_test.
+
 
 ### Training
 CryoDyna predicts conformational heterogeneity in two distinct level (residue-level and bead-level). Here's an illustration of its process:
@@ -57,11 +70,10 @@ CryoDyna predicts conformational heterogeneity in two distinct level (residue-le
   <img width="500" src="cryodyna/images/CryoDyna.png">
 </p>
 
-In this step, we generate an ensemble of molecule structures from the particles with Ca/P atom representing each residue. Note that the `pdb` file is used in this step and it should be docked into the concensus map!
+In this step, we generate an ensemble of molecule structures from the particles with Ca/P atom representing each residue. Note that the `pdb` file is used in this step and it should be docked into the concensus map! (see user guide)
 
 ```shell
-cd projects
-python train_atom.py atom_configs/1ake.py
+python projects/train_atom.py projects/atom_configs/1ake.py
 ```
 
 The outputs will be stored in the `1ake/atom_xxxxx` directory, and we perform evaluations every 12,000 steps. Within this directory, you'll observe sub-directories with the name `epoch-number_step-number`. We choose the most recent directory as the final results.
@@ -100,8 +112,7 @@ You may directly provide an all-atom structure, and CryoDyna-CG will automatical
 After that, run
 
 ```shell
-cd projects
-python train_cg.py cg_configs/1ake.py
+python projects/train_cg.py projects/cg_configs/1ake.py
 ```
 
 The outputs will be stored in the `1ake_cg/atom_xxxxx` directory, and we perform evaluations every 12,000 steps. Within this directory, you'll observe sub-directories with the name `epoch-number_step-number`. We choose the most recent directory as the final results.
@@ -167,7 +178,7 @@ In step 1/2, the atom generator assigns a latent code `z` to each particle image
 
 ```shell
 # change the xxx/z.npy path to the output of the above command
-python train_density.py density_configs/1ake.py --cfg-options extra_input_data_attr.given_z=xxx/z.npy
+python projects/train_density.py projects/density_configs/1ake.py --cfg-options extra_input_data_attr.given_z=xxx/z.npy
 ```
 
 Results will be saved to `1ake_density/density_xxxxx`, and each subdirectory has the name `epoch-number_step-number`. We choose the most recent directory as the final results.
