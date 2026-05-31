@@ -942,6 +942,8 @@ def train():
         em_trainer.fit(model=em_task, train_dataloaders=train_loader, val_dataloaders=test_loader)
     else:
         em_trainer.validate(model=em_task, dataloaders=test_loader)
+        if os.path.exists(f'{cfg.work_dir}/0000_0000000/pca-1.pdb'):
+            log_to_current(f"*****************************You have passed the bead-level test**************************************")
 
 
 if __name__ == "__main__":

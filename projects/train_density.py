@@ -1,7 +1,8 @@
+# Inherited Volume Decoder from CryoSTAR - https://github.com/bytedance/cryostar
 import os
 import os.path as osp
-
 import einops
+from pathlib import Path
 import lightning.pytorch as pl
 import numpy as np
 import torch
@@ -21,7 +22,8 @@ from cryodyna.utils.misc import (pl_init_exp, create_circular_mask, log_to_curre
 from cryodyna.utils.losses import calc_kl_loss
 from cryodyna.utils.ml_modules import VAEEncoder, reparameterize
 from cryodyna.utils.mrc_tools import save_mrc
-
+parent_dir = Path(__file__).parent
+sys.path.insert(0, str(parent_dir))
 from miscs import infer_ctf_params_from_config
 
 log_to_current = rank_zero_only(log_to_current)
@@ -310,6 +312,8 @@ def train():
         trainer.fit(cryo_model, train_dataloaders=train_loader, val_dataloaders=["DUMMY VALID LOADER"])
     else:
         trainer.validate(model=cryo_model, dataloaders=["DUMMY VALID LOADER"])
+        if os.path.exists(f'{cfg.work_dir}/0000_0000000/vol_pca_1_000.mrc'):
+            log_to_current(f"*****************************You have passed the Volume Decoder test**************************************")
 
 
 if __name__ == "__main__":

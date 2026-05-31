@@ -3,7 +3,7 @@ from pathlib import Path
 import warnings
 from copy import deepcopy
 import collections
-
+import os
 import einops
 import numpy as np
 import biotite.structure as struc
@@ -21,7 +21,6 @@ from lightning.pytorch.strategies import DDPStrategy
 
 from mmengine import mkdir_or_exist
 import sys
-# sys.path.insert(0,'/lustre/grp/gyqlab/zhangcw/CryoDyna')
 from cryodyna.utils.transforms import SpatialGridTranslate
 # other
 from cryodyna.utils.dataio import StarfileDataSet, StarfileDatasetConfig, Mask
@@ -699,7 +698,7 @@ def train():
     if cfg.seed is not None:
         set_seed(cfg.seed)
         log_to_current(f"seed set to {cfg.seed}")
-
+    
     dataset = StarfileDataSet(
         StarfileDatasetConfig(
             dataset_dir=cfg.dataset_attr.dataset_dir,
@@ -778,8 +777,12 @@ def train():
     if not cfg.eval_mode:
         em_trainer.fit(model=em_task, train_dataloaders=train_loader, val_dataloaders=test_loader)
     else:
+        
         em_trainer.validate(model=em_task, dataloaders=test_loader)
-
+        if os.path.exists(f'{cfg.work_dir}/0000_0000000/pca-1.pdb'):
+            log_to_current(f"*****************************You have passed the residue-level test**************************************")
 
 if __name__ == "__main__":
+    import warnings
+    warnings.filterwarnings("ignore")
     train()

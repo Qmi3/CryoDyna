@@ -1,9 +1,12 @@
 dataset_attr = dict(
-    dataset_dir="star/tutorial_data_1ake/uniform_snr0-0001_ctf",
-    starfile_path="star/tutorial_data_1ake/uniform_snr0-0001_ctf/simulation.star",
     apix=1.0,
+    dataset_dir=
+    'tutorial_data_1ake/uniform_snr0-0001_ctf',
+    ref_pdb_path=
+    'tutorial_data_1ake/pdbs/1akeA_50.pdb',
     side_shape=128,
-    ref_pdb_path="star/tutorial_data_1ake/pdbs/1akeA_50.pdb",
+    starfile_path=
+    'tutorial_data_1ake/uniform_snr0-0001_ctf/simulation.star'
 )
 work_dir_name = "1ake"
 extra_input_data_attr = dict(
