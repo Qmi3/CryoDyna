@@ -1,6 +1,6 @@
 #include "martini_v2.1-dna.itp"
     
-
+#define RUBBER_BANDS
   
 #include "Protein_A.itp"
     

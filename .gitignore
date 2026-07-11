@@ -6,7 +6,12 @@ IgG-*
 *.zip
 *.txt
 slurm_eval
-
+*.err
+1ake/
+1ake_cg/
+tutorial_data_1ake/
+submit_task.sh
+1ake_density/
 *.egg-info/
 build/
 projects/1ake*

@@ -1,12 +1,13 @@
 # adjust the channel https://download.pytorch.org/whl/cuxxx and torch version according to your driver CUDA version.  
---index-url https://download.pytorch.org/whl/cu126 
+--index-url https://download.pytorch.org/whl/cu128
 
 torch==2.8.0
 torchvision==0.23.0
 torchaudio==2.8.0
 
-# PyTorch Geometric wheels (must match torch + cuda) adjust the channel https://data.pyg.org/whl/torch-x.x.x+xxx.html according to your driver CUDA version.  
---find-links https://data.pyg.org/whl/torch-2.8.0+cu126.html
+# PyTorch Geometric wheels (must match torch + cuda) you can check your CUDA drriver and look up the closet version at https://data.pyg.org/whl/.  
+# For example, I found that my CUDA driver version is 12.8, so I find the closest version of PyTorch Geometric wheels from above link is torch-2.8.0+cu128.html. I replaced the cu126 to cu128.
+--find-links https://data.pyg.org/whl/torch-2.8.0+cu126.html 
 
 torch-scatter
 torch-cluster

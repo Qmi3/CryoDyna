@@ -10,10 +10,10 @@ The detailed user guide can be found at [here](https://www.notion.so/Making-reas
 conda create -n cryodyna python=3.9 -y 
 conda activate cryodyna
 ```
-- Clone this repository and install the package: 
+- Clone this repository and install the package (You should first check your CUDA drriver and look up the closet version at https://data.pyg.org/whl/ and replace the PyTorch Geometric wheels in requirements.txt accordingly): 
 ```bash
-git clone https://github.com/Qmi3/Cryodyna.git
-cd Cryodyna 
+git clone https://github.com/Qmi3/CryoDyna.git
+cd CryoDyna 
 pip install -r requirements.txt # Make sure to install the torch version that matches your CUDA driver version.
 pip install -e .
 conda install -c ostrokach dssp
@@ -49,7 +49,7 @@ unzip tutorial_data_1ake.zip -d ./
 ```
 ### Smoke Test
 
-Before applying CryoDyna to the test dataset, we first run a smoke test to verify that the software has been successfully installed. This test includes model initialization, inference, loss function computation, etc. Please enter the following three commands in the terminal, one after another:
+Before applying CryoDyna to the test dataset, we first run a smoke test to verify that the software has been successfully installed. This test includes model initialization, inference, loss function computation, etc. Please enter the following three commands in the terminal, one after another. Specially, the train_density.py requires a latent code `z` as input, which can be obtained from the output of train_atom.py or train_cg.py. We prepared a pre-trained latent code in the `projects/for_smoke_test/z.npy` file after running train_cg.py for 30 epochs.
 
 ```bash
 python projects/train_atom.py projects/atom_configs/1ake.py --cfg-options eval_mode=True work_dir_name="1ake/residue_test"
@@ -59,7 +59,7 @@ python projects/train_cg.py projects/cg_configs/1ake.py --cfg-options eval_mode=
 python projects/train_density.py projects/density_configs/1ake.py --cfg-options eval_mode=True work_dir_name="1ake/density_test"
 ```
 
-Upon success,, the test will output "You have passed residue-level/bead-level/volume decoder test." at the end of logs. Additionally, result files with the step number 0000_0000000 will be generated in the following directories under : residue_test, bead_test, and density_test.
+Upon success,, the test will output "You have passed residue-level/bead-level/volume decoder test." at the end of logs. Additionally, result files with the step number 0000_0000000 will be generated in the following directories under : 1ake/residue_test/atom_1ake, 1ake/bead_test, and 1ake/density_test.
 
 
 ### Training
@@ -82,7 +82,7 @@ The outputs will be stored in the `1ake/atom_xxxxx` directory, and we perform ev
 atom_xxxxx/
 ├── 0000_0000000/
 ├── ...
-├── 0112_0096000/        # evaluation results
+├── 0019_0015620/        # evaluation results
 │  ├── ckpt.pt           # model parameters
 │  ├── input_image.png   # visualization of input cryo-EM images
 │  ├── pca-1.pdb         # sampled coarse-grained atomic structures along 1st PCA axis
@@ -108,21 +108,23 @@ During the training of CryoDyna-CG, the model requires a MARTINI coarse-grained 
 
 You could set cfg.dataset_attr.ref_pdb_path to the path of your all-atom structure and set cfg.dataset_attr.ref_cg_pdb_path = None in the config file. CryoDyna-CG will automatically perform the coarse-graining.
 
-**(Optionally)**, you could provide a MARTINI-coarse-grained structure that has already been energy-minimized, which can help the structural regularization converge more quickly during the early training stage. Using 1ake as an example: First, run ``` ./martinize_struct_prior.sh ```  to generate the coarse-grained mapping from the all-atom structure. Then, run ```./minimize_struct_prior.sh``` to perform energy minimization (this step requires that the user has GROMACS installed).
+**(Optionally)**, you could provide a MARTINI-coarse-grained structure that has already been energy-minimized, which can help the structural regularization converge more quickly during the early training stage. Using 1ake as an example: First, run ``` ./martinize_struct_prior.sh ```  to generate the coarse-grained mapping from the all-atom structure. Then, run ```./minimize_struct_prior.sh``` to perform energy minimization (this step requires that the user has GROMACS installed). We provide a pre-minimized coarse-grained structure in the `projects/struct_prior/1akeA_50/1akeA_50_cg.pdb` file, which can be used directly for training. You should set cfg.dataset_attr.ref_cg_pdb_path = 'projects/struct_prior/1akeA_50/1akeA_50_cg.pdb' in the config file `projects/cg_configs/1ake.py`.
 
 After that, run
 
 ```shell
-python projects/train_cg.py projects/cg_configs/1ake.py
+python projects/train_cg.py projects/cg_configs/1ake.py # start from all-atom structure
+
+python projects/train_cg.py projects/cg_configs/1ake.py  --cfg-options dataset_attr.ref_cg_pdb_path='projects/struct_prior/1akeA_50/1akeA_50_cg.pdb' # star from pre-minimized coarse-grained structure
 ```
 
-The outputs will be stored in the `1ake_cg/atom_xxxxx` directory, and we perform evaluations every 12,000 steps. Within this directory, you'll observe sub-directories with the name `epoch-number_step-number`. We choose the most recent directory as the final results.
+The outputs will be stored in the `1ake_cg/cg_xxxxx` directory, and we perform evaluations every 12,000 steps. Within this directory, you'll observe sub-directories with the name `epoch-number_step-number`. We choose the most recent directory as the final results.
 
 ```text
-atom_xxxxx/
+cg_xxxxx/
 ├── 0000_0000000/
 ├── ...
-├── 0112_0096000/        # evaluation results
+├── 0029_0023430/        # evaluation results
 │  ├── ckpt.pt           # model parameters
 │  ├── input_image.png   # visualization of input cryo-EM images
 │  ├── pca-1.pdb         # sampled coarse-grained atomic structures along 1st PCA axis
@@ -146,14 +148,14 @@ As an example, we perform backmapping for the **PC1 trajectory at epoch 3**.
 
 First, split the 10 structures contained in `pca-1.pdb` into individual `.pdb` files by running:
 ```bash
-python split_pdb.py 1ake_cg/atom_1ake/0003_0003124/pca-1.pdb
+python projects/split_pdb.py 1ake_cg/cg_1ake/0003_0003124/pca-1.pdb
 ```
-The resulting single-structure .pdb files will be saved in `1ake_cg/atom_1ake/0003_0003124/pca-1`.
+The resulting single-structure .pdb files will be saved in `1ake_cg/cg_1ake/0003_0003124/pca-1`.
 
-Next, assuming that CG2AT2_Backward has already been properly configured, run `./backmapping_dir.sh` to perform the backmapping. This step converts the coarse-grained structures along the PC1 trajectory into atomistic structures.
+Next, assuming that CG2AT2_Backward has already been properly configured, run `projects/backmapping_dir.sh` to perform the backmapping. This step converts the coarse-grained structures along the PC1 trajectory into atomistic structures.
 
 ```text
-atom_xxxxx/
+cg_xxxxx/
 ├── 0000_0000000/
 ├── ...
 ├── 0003_0003124/        # evaluation results
@@ -178,15 +180,15 @@ cluster centers
 In step 1/2, the atom generator assigns a latent code `z` to each particle image. In this step, we will drop the encoder and directly use the latent code as a representation of a partcile. You can execute the subsequent command to initiate the training of a density generator.
 
 ```shell
-# change the xxx/z.npy path to the output of the above command
-python projects/train_density.py projects/density_configs/1ake.py --cfg-options extra_input_data_attr.given_z=xxx/z.npy
+# change the xxx/z.npy path to the output of the above command, if you skip the above step, you can use the pre-trained latent code in the `projects/for_smoke_test/z.npy` file. This is a latent embedding from 30th epoch of the bead-level deformation field training on 1ake dataset.
+python projects/train_density.py projects/density_configs/1ake.py --cfg-options extra_input_data_attr.given_z=projects/for_smoke_test/z.npy
 ```
 
 Results will be saved to `1ake_density/density_xxxxx`, and each subdirectory has the name `epoch-number_step-number`. We choose the most recent directory as the final results.
 
 ```text
 density_xxxxx/
-├── 0004_0014470/          # evaluation results
+├── 0019_0062500/          # evaluation results
 │  ├── ckpt.pt             # model parameters
 │  ├── vol_pca_1_000.mrc   # density sampled along the PCA axis, named by vol_pca_pca-axis_serial-number.mrc
 │  ├── ...

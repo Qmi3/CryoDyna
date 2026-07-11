@@ -57,7 +57,7 @@ warnings.simplefilter("ignore", PossibleUserWarning)
 # only log to rank_zero, comment this for debugging
 log_to_current = rank_zero_only(log_to_current)
 
-TASK_NAME = "atom"
+TASK_NAME = "cg"
 
 
 def prepare_images(images: torch.FloatTensor, space: str):

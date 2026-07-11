@@ -1,12 +1,4 @@
-#!/bin/bash
-#SBATCH -o spike_cg.%j.out
-#SBATCH -p gpu31,gpu33,gpu35
-#SBATCH --qos=normal
-#SBATCH -J spike_cg
-#SBATCH --nodes=1 
-#SBATCH --gres=gpu:1
-#SBATCH -t 120:00:00
-
+# 
 source /opt/intel/oneapi/setvars.sh
 
 mkdir -p projects/struct_prior/1akeA_50/MIN

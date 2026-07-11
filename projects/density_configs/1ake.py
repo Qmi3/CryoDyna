@@ -10,7 +10,7 @@ dataset_attr = dict(
 )
 
 extra_input_data_attr = dict(
-    given_z='projects/struct_prior/z.npy',
+    given_z='projects/for_smoke_test/z.npy',
     ckpt_path=None,
 )
 
