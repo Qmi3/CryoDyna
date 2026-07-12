@@ -1,3 +1,4 @@
+#python scripts/sample_volumes.py --work_dir 10792/atom_10792_10811 --step_num 0049_0045650 --indices 94235 --pixel_size 1.4 * 380 /128
 import os
 import argparse
 import numpy as np
@@ -239,7 +240,7 @@ def main():
         v = cryo_model.vol.make_volume(centers[i:i+1])
         
         # 保存MRC文件
-        mrc_path = f"{output_dir}/centers_{i:02d}.mrc"
+        mrc_path = f"{output_dir}/{i:02d}.mrc"
         save_mrc(v.cpu().numpy(), mrc_path, pixel_size,
                  -pixel_size * (v.shape[0] // 2))
         print(f"Saved {mrc_path}")

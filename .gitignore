@@ -9,6 +9,8 @@ slurm_eval
 *.err
 1ake/
 1ake_cg/
+10792/
+*.mdp
 tutorial_data_1ake/
 submit_task.sh
 1ake_density/

@@ -3,7 +3,7 @@ dataset_attr = dict(
     starfile_path="/lustre/grp/gyqlab/share/cryoem_particles/10073/shiny_correctpaths_cleanedcorruptstacks.star",
     apix=1.4,
     side_shape=380,
-    ref_pdb_path="/lustre/grp/gyqlab/share/cryoem_particles/10073/5gan_centered.pdb",
+    ref_pdb_path="/lustre/grp/gyqlab/share/cryoem_particles/10073/5gan_centered_clean.pdb",
 )
 
 extra_input_data_attr = dict(

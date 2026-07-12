@@ -1,4 +1,4 @@
-# python scripts/sampled_pdb.py --work_dir atom_1ake_0 --step_num 0029_0023430 --n_clusters 5 --output_path test/
+# python scripts/sample_pdbs.py --work_dir atom_1ake_0 --step_num 0029_0023430 --n_clusters 5 --output_path test/
 import sys
 import os
 import argparse
@@ -158,19 +158,23 @@ def main():
     print("Building metagraph...")
     sec_ids, _ = extract_sec_ids_merge_small_blocks(cfg.dataset_attr.ref_pdb_path, min_block_len=3)
     meta_edge_index, centroids = build_metagraph_knn_from_centroids(pos=meta.coord, sec_ids=sec_ids, k=cfg.knn_num)
-    sec_ids = torch.from_numpy(sec_ids).long()
-    meta_edge_index = meta_edge_index.long()
+    # sec_ids = torch.from_numpy(sec_ids)
+    # meta_edge_index = meta_edge_index
     centroid_distances = cdist(centroids, centroids)
-    edge_dist = torch.from_numpy(centroid_distances[meta_edge_index[0], meta_edge_index[1]]).float()
-    pe_vector = torch.from_numpy(np.array([centroids[sec_id] - ref_centers[i] for i, sec_id in enumerate(sec_ids)]))
+    edge_dist = centroid_distances[meta_edge_index[0], meta_edge_index[1]]
+    pe_vector = np.array([centroids[sec_id] - ref_centers[i] for i, sec_id in enumerate(sec_ids)])
     meta_2_node_edge, meta_2_node_vector = get_kplus_neighbor_metanodes(ref_centers, sec_ids, centroids)
     
     # 加载模型
     in_dim = cfg.data_process.down_side_shape ** 2
 
-    model = VAE(in_dim=in_dim, sec_ids=sec_ids, meta_edge_index=meta_edge_index, 
-                edge_dist=edge_dist, out_dim=num_pts * 3, pe_vector=pe_vector,
-                meta_2_node_edge=meta_2_node_edge, meta_2_node_vector=meta_2_node_vector,
+    model = VAE(in_dim=in_dim, 
+                sec_ids = torch.from_numpy(np.array(sec_ids)).long(),
+                meta_edge_index=meta_edge_index.long(), 
+                edge_dist = torch.from_numpy(edge_dist).float(), 
+                out_dim=num_pts * 3, 
+                pe_vector = torch.from_numpy(pe_vector),
+                meta_2_node_edge=meta_2_node_edge.long(), meta_2_node_vector=meta_2_node_vector,
                 **cfg.model.model_cfg)
     
     # 加载z

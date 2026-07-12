@@ -14,9 +14,10 @@ conda activate cryodyna
 ```bash
 git clone https://github.com/Qmi3/CryoDyna.git
 cd CryoDyna 
+conda install -c conda-forge pdbfixer
+conda install -c ostrokach dssp
 pip install -r requirements.txt # Make sure to install the torch version that matches your CUDA driver version.
 pip install -e .
-conda install -c ostrokach dssp
 ```
 
 ## Quick start
@@ -108,7 +109,14 @@ During the training of CryoDyna-CG, the model requires a MARTINI coarse-grained 
 
 You could set cfg.dataset_attr.ref_pdb_path to the path of your all-atom structure and set cfg.dataset_attr.ref_cg_pdb_path = None in the config file. CryoDyna-CG will automatically perform the coarse-graining.
 
-**(Optionally)**, you could provide a MARTINI-coarse-grained structure that has already been energy-minimized, which can help the structural regularization converge more quickly during the early training stage. Using 1ake as an example: First, run ``` ./martinize_struct_prior.sh ```  to generate the coarse-grained mapping from the all-atom structure. Then, run ```./minimize_struct_prior.sh``` to perform energy minimization (this step requires that the user has GROMACS installed). We provide a pre-minimized coarse-grained structure in the `projects/struct_prior/1akeA_50/1akeA_50_cg.pdb` file, which can be used directly for training. You should set cfg.dataset_attr.ref_cg_pdb_path = 'projects/struct_prior/1akeA_50/1akeA_50_cg.pdb' in the config file `projects/cg_configs/1ake.py`.
+**(Optionally)**, you could provide a MARTINI-coarse-grained structure that has already been energy-minimized, which can help the structural regularization converge more quickly during the early training stage. 
+
+Using 1ake as an example: First, run ``` ./martinize_struct_prior.sh ```  to generate the coarse-grained mapping from the all-atom structure. If the structure lacks side chains, you could use the pdbfixer tool to add missing heavy atoms before running the martinize_struct_prior.sh script.
+
+```shell
+pdbfixer 1akeA_50.pdb --add-atoms heavy --output=1akeA_50_fixed.pdb
+```
+Then, run ```./minimize_struct_prior.sh``` to perform energy minimization (this step requires that the user has GROMACS installed). We provide a pre-minimized coarse-grained structure in the `projects/struct_prior/1akeA_50/1akeA_50_cg.pdb` file, which can be used directly for training. You should set cfg.dataset_attr.ref_cg_pdb_path = 'projects/struct_prior/1akeA_50/1akeA_50_cg.pdb' in the config file `projects/cg_configs/1ake.py`.
 
 After that, run
 
@@ -188,15 +196,23 @@ Results will be saved to `1ake_density/density_xxxxx`, and each subdirectory has
 
 ```text
 density_xxxxx/
-├── 0019_0062500/          # evaluation results
+├── 0019_0086820/          # evaluation results
 │  ├── ckpt.pt             # model parameters
-│  ├── vol_pca_1_000.mrc   # density sampled along the PCA axis, named by vol_pca_pca-axis_serial-number.mrc
+│  ├── vol_pca_1_000.mrc   # density sampled along the PCA axis
 │  ├── ...
 │  ├── vol_pca_3_009.mrc
+│	 ├── vol_kmeans_000.mrc  #density sampled by K-means clustering
+│  ├── ...
+│  ├── vol_kmeans_009.mrc
 │  ├── z.npy
-│  ├── z_pca_1.txt         # sampled z values along the 1st PCA axis
+│  ├── z_kmeans.txt        # sampled z values by K-means clustering
+│  ├── z_kmeans_ind.txt    # sampled z indices by K-means clustering
+│  ├── z_pca_1.txt         # sampled z values along the PCA axis
 │  ├── z_pca_2.txt
 │  └── z_pca_3.txt
+│  ├── z_pca_ind_1.txt     # sampled z indices values along the PCA axis
+│  ├── z_pca_ind_2.txt
+│  └── z_pca_ind_3.txt
 ├── yyyymmdd_hhmmss.log    # running logs
 ├── config.py              # a backup of the config file
 └── train_density.py       # a backup of the training script
