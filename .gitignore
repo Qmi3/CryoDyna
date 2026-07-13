@@ -3,22 +3,20 @@ spike_MD*_cg
 IgG-*
 *.out
 *.ipynb
-*.zip
 *.txt
 slurm_eval
 *.err
 1ake/
 1ake_cg/
 10792/
-*.mdp
+# *.mdp
 tutorial_data_1ake/
 submit_task.sh
 1ake_density/
 *.egg-info/
 build/
 projects/1ake*
-projects/star
-projects/struct_prior
+# projects/struct_prior
 projects/*npy
 projects/*pdf
 projects/__pycache__
