@@ -122,7 +122,10 @@ After that, run
 
 ```shell
 python projects/train_cg.py projects/cg_configs/1ake.py # start from all-atom structure
+```
+or 
 
+```shell
 python projects/train_cg.py projects/cg_configs/1ake.py  --cfg-options dataset_attr.ref_cg_pdb_path='projects/struct_prior/1akeA_50/min_ref.pdb' # start from pre-minimized coarse-grained structure
 ```
 
@@ -132,7 +135,7 @@ The outputs will be stored in the `1ake_cg/cg_xxxxx` directory, and we perform e
 cg_xxxxx/
 ├── 0000_0000000/
 ├── ...
-├── 0079_0062480/        # evaluation results
+├── 0029_0023430/        # evaluation results
 │  ├── ckpt.pt           # model parameters
 │  ├── input_image.png   # visualization of input cryo-EM images
 │  ├── pca-1.pdb         # sampled coarse-grained atomic structures along 1st PCA axis
