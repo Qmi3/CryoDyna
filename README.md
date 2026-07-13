@@ -116,7 +116,7 @@ Using 1ake as an example: First, run ``` ./martinize_struct_prior.sh ```  to gen
 ```shell
 pdbfixer 1akeA_50.pdb --add-atoms heavy --output=1akeA_50_fixed.pdb
 ```
-Then, run ```./minimize_struct_prior.sh``` to perform energy minimization. This step requires that the user has GROMACS installed. The GROMACS program must match the CUDA Deriver version. We provide a pre-minimized coarse-grained structure in the `projects/struct_prior/1akeA_50/1akeA_50_cg.pdb` file, which can be used directly for training. You should set cfg.dataset_attr.ref_cg_pdb_path = 'projects/struct_prior/1akeA_50/1akeA_50_cg.pdb' in the config file `projects/cg_configs/1ake.py`.
+Then, run ```./minimize_struct_prior.sh``` to perform energy minimization. This step requires that the user has GROMACS installed. The GROMACS program must match the CUDA Deriver version. You should replace the GROMACS path your local path. We provide a pre-minimized coarse-grained structure in the `projects/struct_prior/1akeA_50/1akeA_50_cg.pdb` file, which can be used directly for training. You should set cfg.dataset_attr.ref_cg_pdb_path = 'projects/struct_prior/1akeA_50/1akeA_50_cg.pdb' in the config file `projects/cg_configs/1ake.py`.
 
 After that, run
 

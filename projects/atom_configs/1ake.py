@@ -78,7 +78,7 @@ analyze = dict(cluster_k=10, skip_umap=False)
 
 runner = dict(log_every_n_step=100,)
 
-trainer = dict(max_epochs=1,
+trainer = dict(max_epochs=20,
                devices=1,
                precision="32",
                check_val_every_n_epoch=1)
