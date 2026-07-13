@@ -132,7 +132,7 @@ The outputs will be stored in the `1ake_cg/cg_xxxxx` directory, and we perform e
 cg_xxxxx/
 ├── 0000_0000000/
 ├── ...
-├── 0029_0023430/        # evaluation results
+├── 0079_0062480/        # evaluation results
 │  ├── ckpt.pt           # model parameters
 │  ├── input_image.png   # visualization of input cryo-EM images
 │  ├── pca-1.pdb         # sampled coarse-grained atomic structures along 1st PCA axis
