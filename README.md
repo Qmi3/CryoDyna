@@ -111,19 +111,19 @@ You could set cfg.dataset_attr.ref_pdb_path to the path of your all-atom structu
 
 **(Optionally)**, you could provide a MARTINI-coarse-grained structure that has already been energy-minimized, which can help the structural regularization converge more quickly during the early training stage. 
 
-Using 1ake as an example: First, run ``` ./martinize_struct_prior.sh ```  to generate the coarse-grained mapping from the all-atom structure. If the structure lacks side chains, you could use the pdbfixer tool to add missing heavy atoms before running the martinize_struct_prior.sh script.
+Using 1ake as an example: First, run ``` ./martinize_struct_prior.sh ```  to generate the coarse-grained mapping from the all-atom structure. If your structure lacks side chains, you could use the pdbfixer tool to add missing heavy atoms before running the martinize_struct_prior.sh script. The expected output can found in `projects/struct_prior/1akeA_50/MARTINI.tar.gz`.
 
 ```shell
 pdbfixer 1akeA_50.pdb --add-atoms heavy --output=1akeA_50_fixed.pdb
 ```
-Then, run ```./minimize_struct_prior.sh``` to perform energy minimization. This step requires that the user has GROMACS installed. The GROMACS program must match the CUDA Deriver version. You should replace the GROMACS path in this script to your local path. We provide a pre-minimized coarse-grained structure in the `projects/struct_prior/1akeA_50/1akeA_50_cg.pdb` file, which can be used directly for training. You should set cfg.dataset_attr.ref_cg_pdb_path = 'projects/struct_prior/1akeA_50/1akeA_50_cg.pdb' in the config file `projects/cg_configs/1ake.py`.
+Then, run ```./minimize_struct_prior.sh``` to perform energy minimization. This step requires that the user has GROMACS installed. The GROMACS program must match the CUDA Deriver version. You should replace the GROMACS path in this script to your local path. The expected output can found in `projects/struct_prior/1akeA_50/MIN.tar.gz`. We provide a pre-minimized coarse-grained structure in the `projects/struct_prior/1akeA_50/min_ref.pdb` file, which can be used directly for training. You should set cfg.dataset_attr.ref_cg_pdb_path = 'projects/struct_prior/1akeA_50/min_ref.pdb' in the config file `projects/cg_configs/1ake.py`.
 
 After that, run
 
 ```shell
 python projects/train_cg.py projects/cg_configs/1ake.py # start from all-atom structure
 
-python projects/train_cg.py projects/cg_configs/1ake.py  --cfg-options dataset_attr.ref_cg_pdb_path='projects/struct_prior/1akeA_50/1akeA_50_cg.pdb' # start from pre-minimized coarse-grained structure
+python projects/train_cg.py projects/cg_configs/1ake.py  --cfg-options dataset_attr.ref_cg_pdb_path='projects/struct_prior/1akeA_50/min_ref.pdb' # start from pre-minimized coarse-grained structure
 ```
 
 The outputs will be stored in the `1ake_cg/cg_xxxxx` directory, and we perform evaluations every 12,000 steps. Within this directory, you'll observe sub-directories with the name `epoch-number_step-number`. We choose the most recent directory as the final results.

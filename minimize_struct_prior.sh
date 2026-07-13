@@ -1,5 +1,5 @@
 # 
-source /opt/intel/oneapi/setvars.sh
+# source /opt/intel/oneapi/setvars.sh
 
 mkdir -p projects/struct_prior/1akeA_50/MIN
 
