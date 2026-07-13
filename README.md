@@ -161,7 +161,7 @@ python projects/split_pdb.py 1ake_cg/cg_1ake/0003_0003124/pca-1.pdb
 ```
 The resulting single-structure .pdb files will be saved in `1ake_cg/cg_1ake/0003_0003124/pca-1`.
 
-Next, assuming that CG2AT2_Backward has already been properly configured, run `projects/backmapping_dir.sh` to perform the backmapping. This step converts the coarse-grained structures along the PC1 trajectory into atomistic structures.
+Next, assuming that CG2AT2_Backward has already been properly configured, run `projects/backmapping_dir.sh` to perform the backmapping. The script backmapping_dir.sh serves as a batch submission wrapper that executes backmapping.sh, the underlying backmapping processing script. This step converts the coarse-grained structures along the PC1 trajectory into atomistic structures.
 
 ```text
 cg_xxxxx/
