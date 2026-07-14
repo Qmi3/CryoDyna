@@ -27,7 +27,7 @@ data_loader = dict(
 )
 
 exp_name = ""
-eval_mode = True
+eval_mode = False
 work_dir_name="1ake_density"
 model = dict(shift_data=False,
              shift_method="interp",
