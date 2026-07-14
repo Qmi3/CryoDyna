@@ -8,9 +8,9 @@
 #SBATCH --mem=24G                    # 内存需求
 #SBATCH --partition=gpu2     # 分区名称 (根据集群修改)
 #SBATCH --gres=gpu:1
-work_dir='1ake_cg/atom_1ake/0003_0003124/pca-1'
+work_dir='1ake_cg/cg_1ake/0003_0003124/pca-1'
 for i in `ls ${work_dir}/*.pdb`
 do
     echo $i
-    ./backmapping.sh $i
+    ./projects/backmapping.sh $i
 done
