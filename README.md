@@ -193,7 +193,7 @@ In step 1/2, the atom generator assigns a latent code `z` to each particle image
 
 ```shell
 # change the xxx/z.npy path to the output of the above command, if you skip the above step, you can use the pre-trained latent code in the `projects/for_smoke_test/z.npy` file. This is a latent embedding from 30th epoch of the bead-level deformation field training on 1ake dataset.
-python projects/train_density.py projects/density_configs/1ake.py --cfg-options extra_input_data_attr.given_z=projects/for_smoke_test/z.npy
+python projects/train_density.py projects/density_configs/1ake.py --cfg-options eval_mode=False extra_input_data_attr.given_z=projects/for_smoke_test/z.npy
 ```
 
 Results will be saved to `1ake_density/density_xxxxx`, and each subdirectory has the name `epoch-number_step-number`. We choose the most recent directory as the final results.
