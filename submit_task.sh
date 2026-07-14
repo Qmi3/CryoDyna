@@ -9,7 +9,7 @@
 #SBATCH --partition=gpu3        # 分区名称 (根据集群修改)
 #SBATCH --gres=gpu:1
 source ~/miniconda3/etc/profile.d/conda.sh
-conda activate cryodyna_test
+conda activate cryodyna
 # module load gromacs
 # 
 # source /opt/intel/oneapi/setvars.sh
