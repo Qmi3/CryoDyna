@@ -1,14 +1,14 @@
 import shutil
 dataset_attr = dict(
     dataset_dir="/lustre/grp/gyqlab/share/cryoem_particles/10073/data",
-    starfile_path="/lustre/grp/gyqlab/share/cryoem_particles/10073/shiny_correctpaths_cleanedcorruptstacks.star",
+    starfile_path="/lustre/grp/gyqlab/share/cryoem_particles/10073/data/shiny_correctpaths_cleanedcorruptstacks.star",
     apix=1.4,
     side_shape=380,
     ref_pdb_path="/lustre/grp/gyqlab/share/cryoem_particles/10073/5gan_centered_clean_fixed.pdb",
     ref_cg_pdb_path="/lustre/grp/gyqlab/lism/cryostar/martini_test/10073/MIN/min.pdb",
 )
 
-work_dir_name = "10073_cg"
+work_dir_name = "10073_test"
 cg_attr = dict(
     dssp=shutil.which("mkdssp"),
     ssc=0.5,
@@ -34,7 +34,7 @@ data_loader = dict(
 )
 
 seed = 1
-exp_name = "10073_test"
+exp_name = "10073_cg"
 eval_mode = False
 do_ref_init = True
 

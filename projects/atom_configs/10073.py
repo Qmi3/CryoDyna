@@ -1,6 +1,6 @@
 dataset_attr = dict(
     dataset_dir="/lustre/grp/gyqlab/share/cryoem_particles/10073/data",
-    starfile_path="/lustre/grp/gyqlab/share/cryoem_particles/10073/shiny_correctpaths_cleanedcorruptstacks.star",
+    starfile_path="/lustre/grp/gyqlab/share/cryoem_particles/10073/data/shiny_correctpaths_cleanedcorruptstacks.star",
     apix=1.4,
     side_shape=380,
     ref_pdb_path="/lustre/grp/gyqlab/share/cryoem_particles/10073/5gan_centered_clean.pdb",
@@ -27,7 +27,7 @@ data_loader = dict(
 )
 work_dir_name = "10073_test"
 seed = 1
-exp_name = ""
+exp_name = "10073_atom"
 eval_mode = False
 do_ref_init = True
 knn_num = 32
