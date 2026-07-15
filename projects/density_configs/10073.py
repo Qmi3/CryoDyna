@@ -10,7 +10,7 @@ extra_input_data_attr = dict(
     given_z='/lustre/grp/gyqlab/zhangcw/CryoDyna/10073/atom_10073_10087/0079_0086800/z.npy',
     ckpt_path=None,
 )
-work_dir_name='10073'
+work_dir_name='10073_test'
 data_process = dict(
     down_side_shape=256,
     down_method="interp",

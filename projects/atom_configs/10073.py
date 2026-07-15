@@ -25,7 +25,7 @@ data_loader = dict(
     val_batch_per_gpu=128,
     workers_per_gpu=4,
 )
-work_dir_name = "10073"
+work_dir_name = "10073_test"
 seed = 1
 exp_name = ""
 eval_mode = False
