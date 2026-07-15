@@ -107,15 +107,15 @@ In this step, we generate an ensemble of molecule structures from the particles 
 
 During the training of CryoDyna-CG, the model requires a MARTINI coarse-grained structural prior.
 
-You could set cfg.dataset_attr.ref_pdb_path to the path of your all-atom structure and set cfg.dataset_attr.ref_cg_pdb_path = None in the config file. CryoDyna-CG will automatically perform the coarse-graining.
-
-**(Optionally)**, you could provide a MARTINI-coarse-grained structure that has already been energy-minimized, which can help the structural regularization converge more quickly during the early training stage. 
-
-Using 1ake as an example: First, run ``` ./martinize_struct_prior.sh ```  to generate the coarse-grained mapping from the all-atom structure. If your structure lacks side chains, you could use the pdbfixer tool to add missing heavy atoms before running the martinize_struct_prior.sh script. The expected output can found in `projects/struct_prior/1akeA_50/MARTINI.tar.gz`.
+You could set cfg.dataset_attr.ref_pdb_path to the path of your all-atom structure and set cfg.dataset_attr.ref_cg_pdb_path = None in the config file. CryoDyna-CG will automatically perform the coarse-graining. However，experimentally resolved structures may miss side-chain atoms. If the initial structure you provided lacks side chains, you should use PDBfixer for side-chain heavy atom restoration, with the specific commands provided below. For 1ake dataset, you can skip this step.
 
 ```shell
+#example, you need to update the path to the PDB file for which you want to add missing side-chain heavy atoms.
 pdbfixer 1akeA_50.pdb --add-atoms heavy --output=1akeA_50_fixed.pdb
 ```
+**(Optionally)**, you could also provide a MARTINI-coarse-grained structure that has already been energy-minimized, which can help the structural regularization converge more quickly during the early training stage. 
+
+Using 1ake as an example: First, run ``` ./martinize_struct_prior.sh ```  to generate the coarse-grained mapping from the all-atom structure. If your structure lacks side chains, you could use the pdbfixer tool to add missing heavy atoms before running the martinize_struct_prior.sh script. The expected output can found in `projects/struct_prior/1akeA_50/MARTINI.tar.gz`. 
 Then, run ```./minimize_struct_prior.sh``` to perform energy minimization. This step requires that the user has GROMACS installed. The GROMACS program must match the CUDA Deriver version. You should replace the GROMACS path in this script to your local path. The expected output can found in `projects/struct_prior/1akeA_50/MIN.tar.gz`. We provide a pre-minimized coarse-grained structure in the `projects/struct_prior/1akeA_50/min_ref.pdb` file, which can be used directly for training. You should set cfg.dataset_attr.ref_cg_pdb_path = 'projects/struct_prior/1akeA_50/min_ref.pdb' in the config file `projects/cg_configs/1ake.py`.
 
 After that, run
