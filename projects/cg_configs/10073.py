@@ -34,7 +34,7 @@ data_loader = dict(
 )
 
 seed = 1
-exp_name = "10073_cg"
+exp_name = ""
 eval_mode = False
 do_ref_init = True
 

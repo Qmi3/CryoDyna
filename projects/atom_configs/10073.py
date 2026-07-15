@@ -27,7 +27,7 @@ data_loader = dict(
 )
 work_dir_name = "10073_test"
 seed = 1
-exp_name = "10073_atom"
+exp_name = ""
 eval_mode = False
 do_ref_init = True
 knn_num = 32

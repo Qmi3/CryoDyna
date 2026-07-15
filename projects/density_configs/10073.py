@@ -24,7 +24,7 @@ data_loader = dict(
 )
 
 
-exp_name = "10073_density"
+exp_name = ""
 eval_mode = False
 
 model = dict(shift_data=False,
