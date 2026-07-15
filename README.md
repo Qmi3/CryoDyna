@@ -107,7 +107,7 @@ In this step, we generate an ensemble of molecule structures from the particles 
 
 During the training of CryoDyna-CG, the model requires a MARTINI coarse-grained structural prior.
 
-You could set cfg.dataset_attr.ref_pdb_path to the path of your all-atom structure and set cfg.dataset_attr.ref_cg_pdb_path = None in the config file. CryoDyna-CG will automatically perform the coarse-graining. However，experimentally resolved structures may miss side-chain atoms. If the initial structure you provided lacks side chains, you should use PDBfixer for side-chain heavy atom restoration, with the specific commands provided below. For 1ake dataset, you can skip this step.
+You could set cfg.dataset_attr.ref_pdb_path to the path of your all-atom structure and set cfg.dataset_attr.ref_cg_pdb_path = None in the config file. CryoDyna-CG will automatically perform the coarse-graining. It's noted that experimentally resolved structures may miss side-chain atoms. If the initial structure you provided lacks side chains, you should use PDBfixer for side-chain heavy atom restoration, with the specific commands provided below. For 1ake dataset, you can skip this step.
 
 ```shell
 #example, you need to update the path to the PDB file for which you want to add missing side-chain heavy atoms.
