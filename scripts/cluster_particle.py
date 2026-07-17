@@ -21,6 +21,7 @@ def main():
     # centers, centers_ids = get_nearest_point(z, centers)
     
     # 保存结果
+    os.makedirs(args.output_dir, exist_ok=True)
     for cluster_id in range(args.n_clusters):
         class_indices = np.where(kmeans_labels == cluster_id)[0]
         

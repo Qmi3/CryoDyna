@@ -95,6 +95,7 @@ atom_xxxxx/
 |                        # a matrix whose shape is num_of_particle x 8
 ├── yyyymmdd_hhmmss.log  # running logs
 ├── config.py            # a backup of the config file
+├── struc_fea.pkl        # a backup of pre-computed feature
 └── train_atom.py        # a backup of the training script
 ```
 

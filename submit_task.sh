@@ -2,7 +2,7 @@
 #SBATCH --job-name=test_smoke           # 作业名称
 #SBATCH --output=%j.out             # 标准输出文件 (%j 会被替换为 Job ID)
 #SBATCH --error=%j.err              # 错误输出文件
-#SBATCH --time=01:00:00             # 运行时间上限 (HH:MM:SS)
+#SBATCH --time=100:00:00             # 运行时间上限 (HH:MM:SS)
 #SBATCH --ntasks=1                  # 任务数 (通常为1)
 #SBATCH --cpus-per-task=4           # 每个任务使用的 CPU 核心数
 #SBATCH --mem=24G                    # 内存需求
@@ -34,8 +34,8 @@ conda activate cryodyna
 # python projects/train_atom.py projects/atom_configs/1ake.py --cfg-options eval_mode=True work_dir_name="1ake/residue_test"
 # python projects/train_cg.py projects/cg_configs/1ake.py --cfg-options eval_mode=True work_dir_name="1ake/bead_test"
 # python /share/home/zhangcw/density_simulation.py -i /share/home/zhangcw/pca-1-1of10.pdb -o /share/home/zhangcw/pca-1-1of10.mrc -s 256 -a 2.078 
-pdbfixer /share/home/zhangcw/5gan_centered_clean.pdb --add-atoms heavy --output=/share/home/zhangcw/5gan_centered_clean_fixed.pdb
-# python projects/train_density.py projects/density_configs/1ake.py --cfg-options eval_mode=True work_dir_name="1ake/density_test"
+# pdbfixer /share/home/zhangcw/5gan_centered_clean.pdb --add-atoms heavy --output=/share/home/zhangcw/5gan_centered_clean_fixed.pdb
+python projects/train_density.py projects/density_configs/10073.py 
 # python projects/train_atom_ori.py projects/atom_configs/1ake.py
 # python projects/train_atom_ori.py projects/atom_configs/spike_MD.py
 # python projects/train_atom.py projects/atom_configs/1ake.py
