@@ -2,7 +2,7 @@
 
 
 ## Updates
-We fixed the bug in cross-view attention and release the new code in "fix/cross-view attention" branch. 
+We fixed the bug in cross-view attention module and release the new code in `fix/cross-view attention` branch.
 
 ## User Guide
 The detailed user guide can be found at [here](https://www.notion.so/Making-reasonable-molecule-dance-video-with-CryoDyna-88b1c421ec0c825481a48159ddcf709d?source=copy_link). This comprehensive guide provides in-depth information about the topic at hand. Feel free to visit the link if you're seeking more knowledge or need extensive instructions regarding the topic. 
