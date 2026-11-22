@@ -6,18 +6,22 @@ torchvision==0.23.0
 torchaudio==2.8.0
 
 # PyTorch Geometric wheels (must match torch + cuda) you can check your CUDA drriver and look up the closet version at https://data.pyg.org/whl/.  
-# For example, I found that my CUDA driver version is 12.8, so I find the closest version of PyTorch Geometric wheels from above link is torch-2.8.0+cu128.html. I replaced the cu126 to cu128.
+# Verified combination (driver CUDA 12.8, torch 2.8.0+cu128):
+#   torch-geometric==2.6.1, torch-scatter==2.1.2+pt28cu126, torch-cluster==1.6.3+pt28cu126
+# The PyG C++ extension wheels only depend on the torch 2.8 ABI, so the wheels from
+# torch-2.8.0+cu126.html install and run fine on top of torch 2.8.0+cu128.
+# torch-sparse is NOT required: nothing in cryodyna imports torch_sparse.
 --find-links https://data.pyg.org/whl/torch-2.8.0+cu126.html 
 
-torch-scatter
-torch-cluster
-torch-geometric
+torch-geometric==2.6.1
+torch-scatter==2.1.2
+torch-cluster==1.6.3
 
 # Utilities (from PyPI)
 --extra-index-url https://pypi.org/simple
 
-torchinfo
-torchmetrics
+torchinfo==1.8.0
+torchmetrics==1.8.2
 
 # training
 mmengine==0.10.2
