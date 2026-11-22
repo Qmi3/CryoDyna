@@ -119,20 +119,14 @@ class VAE(nn.Module):
         pe_vector_res_2_meta=None,
         pe_vector_bead_2_res=None,
         is_CG=False,
-        ffn: bool = False,
-        ffn_ratio: int = 4,
-        ffn_dropout: float = 0.1,
     ):
         super().__init__()
-        if ffn and encoder_cls != "MS-GAT":
-            raise NotImplementedError(f"ffn=True 目前只支持 encoder_cls='MS-GAT'，收到 '{encoder_cls}'")
         # 注：纯逐图 MLP encoder（VAEEncoder）不再通过 encoder_cls 注册，
         # encoder 只保留带 batch 内 cross-view attention 的 GAT / MS-GAT 两种。
         if encoder_cls == "GAT":
             self.encoder = GATEncoder(in_dim, e_hidden_dim, attention_layer, z_dim, e_hidden_layers)
         elif encoder_cls == "MS-GAT":
-            self.encoder = MultiScaleGATEncoder(in_dim, e_hidden_dim, attention_layer, z_dim, e_hidden_layers,
-                                                ffn=ffn, ffn_ratio=ffn_ratio, ffn_dropout=ffn_dropout)
+            self.encoder = MultiScaleGATEncoder(in_dim, e_hidden_dim, attention_layer, z_dim, e_hidden_layers)
         else:
             raise ValueError(f"encoder_cls 只支持 'GAT' / 'MS-GAT'，收到 '{encoder_cls}'")
         if decoder_cls == "MLP":

@@ -231,15 +231,12 @@ class VAEEncoder(nn.Module):
 #         # 
 #         return mean
 class MultiScaleGATEncoder(nn.Module):
-    def __init__(self, in_dim: int, hidden_dim: Union[int, List[int]], attention_layer:int ,out_dim: int, num_hidden_layers=3,
-                 ffn: bool = False, ffn_ratio: int = 4, ffn_dropout: float = 0.1):
+    def __init__(self, in_dim: int, hidden_dim: Union[int, List[int]], attention_layer:int ,out_dim: int, num_hidden_layers=3):
         """跨视图（batch 内图像两两之间）注意力编码器。
 
         attention_layer 里的每一步 = batch 内图像间注意力（complete_graph + TransformerConv）。
-
-        ffn=True 时，在每一步图像间注意力之后再接一个标准 transformer 的 FFN 分支：
-            x = post_norm(attn(x));  x = x + ffn(ffn_norm(x))
-        ffn=False 时计算路径与旧实现完全一致（int 语义下逐层一一对应）。
+        计算路径与旧实现完全一致：逐图 MLP 层与图像间注意力层交替，注意力层后接 LayerNorm，
+        没有 FFN 子层（int 语义下逐层一一对应）。
 
         与旧实现相比的唯一行为差异（也是本版修复的重点）：旧实现把注意力层存成普通
         python list（`self.attn_layers = [TransformerConv(...), ...]`），list 里的子模块
@@ -290,21 +287,6 @@ class MultiScaleGATEncoder(nn.Module):
                                     heads=4, concat=False, dropout=0.2)
             for i in attn_idx})
         self.post_norm = nn.ModuleDict({str(i): nn.LayerNorm(self.hidden_dim[i + 1]) for i in attn_idx})
-        # 可选 FFN：只在做图像间注意力的那些层后面追加（pre-norm + residual，标准 transformer block 后半段）
-        self.ffn = ffn
-        if ffn:
-            assert int(ffn_ratio) >= 1, f"ffn_ratio 必须 >= 1，收到 {ffn_ratio}"
-            self.ffn_ratio = int(ffn_ratio)
-            self.ffn_norm = nn.ModuleDict({str(i): nn.LayerNorm(self.hidden_dim[i + 1]) for i in attn_idx})
-            self.ffn_layers = nn.ModuleDict({
-                str(i): nn.Sequential(
-                    Linear(self.hidden_dim[i + 1], self.hidden_dim[i + 1] * self.ffn_ratio),
-                    nn.GELU(),
-                    nn.Dropout(ffn_dropout),
-                    Linear(self.hidden_dim[i + 1] * self.ffn_ratio, self.hidden_dim[i + 1]),
-                    nn.Dropout(ffn_dropout),
-                )
-                for i in attn_idx})
         # self.attn_layers = [TransformerConv(i,o,heads=4,concat=False,dropout=0.2) for i,o in zip(hidden_dim[attention_layer:-1],hidden_dim[attention_layer+1:])]
         # self.pre_norm = [nn.LayerNorm(o) for i,o in zip(hidden_dim[attention_layer:-1],hidden_dim[attention_layer+1:])]
         # self.ff_layers = [nn.Sequential(nn.Linear(i,o),nn.ELU(inplace=True)) for i,o in zip(hidden_dim[attention_layer:-1],hidden_dim[attention_layer+1:])]
@@ -329,8 +311,6 @@ class MultiScaleGATEncoder(nn.Module):
             key = str(i)
             if key in self.attn_layers:          # 该层做 batch 内图像间自注意力
                 x = self.post_norm[key](self.attn_layers[key](x, img_img_idx))
-                if self.ffn:                     # 可选 FFN 分支（pre-norm + residual）
-                    x = x + self.ffn_layers[key](self.ffn_norm[key](x))
             else:                                # 该层走逐图 MLP
                 x = self.mlp_layers[key](x)
         x = self.mean_layer(x)
