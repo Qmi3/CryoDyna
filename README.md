@@ -1,7 +1,7 @@
 ## CryoDyna: Multiscale end-to-end modeling of cryo-EM macromolecule dynamics with physics-aware neural network
 
 
-##Updates
+## Updates
 We fixed the bug in cross-view attention and release the new code in "fix/cross-view attention" branch. 
 
 ## User Guide
