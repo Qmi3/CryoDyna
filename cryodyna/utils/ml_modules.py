@@ -232,6 +232,19 @@ class VAEEncoder(nn.Module):
 #         return mean
 class MultiScaleGATEncoder(nn.Module):
     def __init__(self, in_dim: int, hidden_dim: Union[int, List[int]], attention_layer:int ,out_dim: int, num_hidden_layers=3):
+        """跨视图（batch 内图像两两之间）注意力编码器。
+
+        attention_layer 里的每一步 = batch 内图像间注意力（complete_graph + TransformerConv）。
+        计算路径与旧实现完全一致：逐图 MLP 层与图像间注意力层交替，注意力层后接 LayerNorm，
+        没有 FFN 子层（int 语义下逐层一一对应）。
+
+        与旧实现相比的唯一行为差异（也是本版修复的重点）：旧实现把注意力层存成普通
+        python list（`self.attn_layers = [TransformerConv(...), ...]`），list 里的子模块
+        不会被注册为 submodule —— 其参数既不进 state_dict，也不会参与优化器更新/保存。
+        本版统一改用 nn.ModuleDict，逐图 MLP 拆为 input_layer / mlp_layers。因此：
+          - 注意力权重现在真正参与训练与保存（参数量增加）；
+          - state_dict 的 key 名与旧版不同，旧 ckpt 需 load_state_dict(..., strict=False)。
+        """
         super().__init__()
         self.in_dim = in_dim
         if isinstance(hidden_dim, int):
@@ -243,11 +256,43 @@ class MultiScaleGATEncoder(nn.Module):
             raise NotImplementedError
         self.out_dim = out_dim
         self.num_hidden_layers = num_hidden_layers
-        self.mlp1 = MLP(np.concatenate(([in_dim],self.hidden_dim[:attention_layer])), self.hidden_dim[:attention_layer+1])
-        self.attn_layers = [TransformerConv(i,o,heads=4,concat=False,dropout=0.2) for i,o in zip(hidden_dim[attention_layer:-1],hidden_dim[attention_layer+1:])]
+        # ---- attention_layer 语义 ----------------------------------------------------------
+        #   int          : 旧语义 —— 从第 attention_layer 层开始，之后每一层都做图像间自注意力
+        #   list/tuple/set: 只在这些层做图像间自注意力，其余层走逐图 MLP。
+        #                   层 i 指 hidden_dim[i] -> hidden_dim[i+1] 这一步：
+        #                   hidden_dim=(512,256,128,128) 时
+        #                     attention_layer=0        -> 512->256, 256->128, 128->128 三层都做
+        #                     attention_layer=[0,2]    -> 512->256 和 128->128 做，256->128 走 MLP
+        #                     attention_layer=[]       -> 纯逐图 MLP（无图像间交互）
+        # in_dim -> hidden_dim[0] 这一步恒为逐图 MLP（在 16384 维原图上做图注意力没有意义）。
+        n_step = len(self.hidden_dim) - 1
+        if isinstance(attention_layer, int):
+            attn_idx = list(range(attention_layer, n_step))
+        elif isinstance(attention_layer, (list, tuple, set)):
+            attn_idx = sorted({int(i) for i in attention_layer})
+            bad = [i for i in attn_idx if not 0 <= i < n_step]
+            assert not bad, f"attention_layer 里的层索引越界 {bad}，合法范围 0..{n_step - 1}"
+        else:
+            raise NotImplementedError("attention_layer 只支持 int 或 int 列表")
+        self.attn_idx = attn_idx
+
+        # 逐图 MLP：in_dim -> hidden_dim[0]，以及所有"不做图注意力"的层
+        self.input_layer = MLP([in_dim], [self.hidden_dim[0]])
+        self.mlp_layers = nn.ModuleDict({
+            str(i): MLP([self.hidden_dim[i]], [self.hidden_dim[i + 1]])
+            for i in range(n_step) if i not in attn_idx})
+        # 图像间自注意力层：batch 内 N 张图两两相连（complete_graph）做 TransformerConv
+        self.attn_layers = nn.ModuleDict({
+            str(i): TransformerConv(self.hidden_dim[i], self.hidden_dim[i + 1],
+                                    heads=4, concat=False, dropout=0.2)
+            for i in attn_idx})
+        self.post_norm = nn.ModuleDict({str(i): nn.LayerNorm(self.hidden_dim[i + 1]) for i in attn_idx})
+        # self.attn_layers = [TransformerConv(i,o,heads=4,concat=False,dropout=0.2) for i,o in zip(hidden_dim[attention_layer:-1],hidden_dim[attention_layer+1:])]
         # self.pre_norm = [nn.LayerNorm(o) for i,o in zip(hidden_dim[attention_layer:-1],hidden_dim[attention_layer+1:])]
         # self.ff_layers = [nn.Sequential(nn.Linear(i,o),nn.ELU(inplace=True)) for i,o in zip(hidden_dim[attention_layer:-1],hidden_dim[attention_layer+1:])]
-        self.post_norm = [nn.LayerNorm(o) for i,o in zip(hidden_dim[attention_layer:-1],hidden_dim[attention_layer+1:])]
+        # NOTE: attn_layers / post_norm / mlp_layers 必须保持 nn.ModuleDict 形式：
+        # 普通 python list 里的子模块不会注册进 state_dict，旧实现正是因为这一点
+        # 导致跨视图注意力层的权重从未被保存/加载。
         # self.mlp2 = nn.Sequential(*layers)
         # self.input_layer = nn.Sequential(
         #     ResLinear(in_dim, self.hidden_dim[0]) if in_dim == self.hidden_dim[0] else Linear(
@@ -260,20 +305,15 @@ class MultiScaleGATEncoder(nn.Module):
         # self.var_layer = Linear(self.hidden_dim[-1], out_dim)
 
     def forward(self, x):
-        x = self.mlp1(x)
-        img_img_idx= complete_graph(x.shape[0],x.device)
-        for it, attn_layer in enumerate(self.attn_layers):
-            attn_layer = attn_layer.to(x.device)
-            # pre_norm = self.pre_norm[it].to(x.device)
-            post_norm = self.post_norm[it].to(x.device)
-            x = attn_layer(x,img_img_idx)
-            # x = pre_norm(x)
-            # ff_layer = self.ff_layers[it].to(x.device)
-            # x = x + ff_layer(x)
-            x = post_norm(x)
-        # x = self.encoder(x)
+        x = self.input_layer(x)
+        img_img_idx = complete_graph(x.shape[0], x.device)
+        for i in range(len(self.hidden_dim) - 1):
+            key = str(i)
+            if key in self.attn_layers:          # 该层做 batch 内图像间自注意力
+                x = self.post_norm[key](self.attn_layers[key](x, img_img_idx))
+            else:                                # 该层走逐图 MLP
+                x = self.mlp_layers[key](x)
         x = self.mean_layer(x)
-        # log_var = self.var_layer(x)
         return x
     
 class GATEncoder(nn.Module):
@@ -294,7 +334,9 @@ class GATEncoder(nn.Module):
         # self.input_layer = nn.Sequential(
         #     ResLinear(in_dim, self.hidden_dim[0]) if in_dim == self.hidden_dim[0] else Linear(
         #         in_dim, self.hidden_dim[0]), nn.ReLU(inplace=True))
-        self.mlp1 = MLP(np.concatenate(([in_dim],self.hidden_dim[:attention_layer])), self.hidden_dim[:attention_layer+1])
+        # NOTE: 同 MultiScaleGATEncoder，避免 attention_layer=0 时 np.concatenate 产生 float64 数组
+        self.mlp1 = MLP([in_dim, *self.hidden_dim[:attention_layer]],
+                        list(self.hidden_dim[:attention_layer + 1]))
         # self.norm1 = nn.LayerNorm(self.hidden_dim[attention_layer])
         self.attention_layer = TransformerConv(hidden_dim[attention_layer],hidden_dim[attention_layer],heads=4,concat=False)
         self.dropout = nn.Dropout(p=0.5)

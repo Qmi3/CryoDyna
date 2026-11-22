@@ -121,14 +121,14 @@ class VAE(nn.Module):
         is_CG=False,
     ):
         super().__init__()
-        if encoder_cls == "MLP":
-            self.encoder = VAEEncoder(in_dim, e_hidden_dim, z_dim, e_hidden_layers)
-        elif encoder_cls == "GAT":
+        # 注：纯逐图 MLP encoder（VAEEncoder）不再通过 encoder_cls 注册，
+        # encoder 只保留带 batch 内 cross-view attention 的 GAT / MS-GAT 两种。
+        if encoder_cls == "GAT":
             self.encoder = GATEncoder(in_dim, e_hidden_dim, attention_layer, z_dim, e_hidden_layers)
         elif encoder_cls == "MS-GAT":
             self.encoder = MultiScaleGATEncoder(in_dim, e_hidden_dim, attention_layer, z_dim, e_hidden_layers)
         else:
-            raise Exception()
+            raise ValueError(f"encoder_cls 只支持 'GAT' / 'MS-GAT'，收到 '{encoder_cls}'")
         if decoder_cls == "MLP":
             self.decoder = Decoder(z_dim, d_hidden_dim, out_dim, d_hidden_layers)
         elif decoder_cls == "GNN_with_prior":
@@ -183,9 +183,7 @@ class VAE(nn.Module):
 #         d_hidden_layers: int,
 #     ):
 #         super().__init__()
-#         if encoder_cls == "MLP":
-#             self.encoder = VAEEncoder(in_dim, e_hidden_dim, z_dim, e_hidden_layers)
-#         elif encoder_cls == "GAT":
+#         if encoder_cls == "GAT":
 #             self.encoder = GATEncoder(in_dim, e_hidden_dim, attention_layer, z_dim, e_hidden_layers)
 #         elif encoder_cls == "MS-GAT":
 #             self.encoder = MultiScaleGATEncoder(in_dim, e_hidden_dim, attention_layer, z_dim, e_hidden_layers)
@@ -240,9 +238,7 @@ class VAE(nn.Module):
 #         d_hidden_layers: int,
 #     ):
 #         super().__init__()
-#         if encoder_cls == "MLP":
-#             self.encoder = VAEEncoder(in_dim, e_hidden_dim, z_dim, e_hidden_layers)
-#         elif encoder_cls == "GAT":
+#         if encoder_cls == "GAT":
 #             self.encoder = GATEncoder(in_dim, e_hidden_dim, attention_layer, z_dim, e_hidden_layers)
 #         elif encoder_cls == "MS-GAT":
 #             self.encoder = MultiScaleGATEncoder(in_dim, e_hidden_dim, attention_layer, z_dim, e_hidden_layers)
